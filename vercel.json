@@ -1,7 +1,9 @@
 {
   "outputDirectory": ".",
-  "buildCommand": null,
-  "installCommand": null,
+  "buildCommand": "echo 'Static site - no build needed'",
+  "installCommand": "echo 'No install needed'",
   "framework": null,
-  "ignoreCommand": "false"
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
