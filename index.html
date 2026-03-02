@@ -855,6 +855,51 @@
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:var(--border-light); }
   ::-webkit-scrollbar-thumb:hover { background:var(--accent); }
+
+  /* ===== AI INLINE INPUT ===== */
+  .ai-inline-input {
+    flex: 2;
+    min-width: 0;
+    height: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 8px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    align-self: stretch;
+  }
+  .ai-inline-input:focus {
+    border-color: var(--accent);
+    box-shadow: 2px 2px 0px var(--accent);
+    z-index: 1;
+  }
+  .ai-inline-input::placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    font-weight: 400;
+  }
+  .ai-bar-result {
+    font-size:11px;
+    font-weight:700;
+    display:none;
+    align-items:center;
+    gap:8px;
+    letter-spacing:0.3px;
+    padding: 4px 0 0;
+  }
+  .ai-bar-result.show { display:flex; }
+  .ai-bar-result.success { color:var(--green); }
+  .ai-bar-result.error { color:var(--red); }
+  .ai-bar-reasoning {
+    font-size:10px;
+    color:var(--text-muted);
+    font-weight:400;
+    font-style:italic;
+  }
 </style>
 </head>
 <body>
@@ -1976,7 +2021,17 @@ function render() {
             ${d}<span>min</span>
           </button>
         `).join("")}
+        <input
+          class="ai-inline-input"
+          id="ai-bar-input"
+          type="text"
+          placeholder="⚡ schedule with AI..."
+          onkeydown="if(event.key==='Enter')submitAISchedule()"
+          autocomplete="off"
+          spellcheck="false"
+        >
       </div>
+      <div class="ai-bar-result" id="ai-bar-result"></div>
       ${state.tags.length>0?`
         <div class="tag-row">
           <span class="dur-label">Tag</span>
@@ -2534,6 +2589,83 @@ function restoreActiveTimers() {
 initializeAuth();
 setInterval(()=>{ updateSessionStatuses(); render(); }, 60000);
 setInterval(updateCountdowns, 1000);
+
+// ===== AI COMMAND BAR =====
+const FLASK_URL = 'https://zonein.fly.dev';
+
+let aiScheduling = false;
+let aiResultTimeout = null;
+
+async function submitAISchedule() {
+  if (aiScheduling) return;
+  const input = document.getElementById('ai-bar-input');
+  const result = document.getElementById('ai-bar-result');
+  if (!input) return;
+
+  const message = input.value.trim();
+  if (!message) { input.focus(); return; }
+  if (!currentUser) { showToast('Please sign in first'); return; }
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { showToast('Session expired, please sign in again'); return; }
+
+  // Loading state
+  aiScheduling = true;
+  input.disabled = true;
+  input.placeholder = '⏳ booking...';
+  if (result) { result.className = 'ai-bar-result'; }
+
+  try {
+    const res = await fetch(`${FLASK_URL}/api/schedule`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ message }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'Something went wrong');
+
+    // Add booked sessions to local state and re-render
+    for (const s of data.sessions) {
+      if (!state.sessions.find(x => x.id === s.id)) state.sessions.push(s);
+    }
+    input.value = '';
+    render(); // re-render rebuilds bottom bar, result div is re-created
+
+    // Show result after render (DOM is rebuilt)
+    setTimeout(() => {
+      const r = document.getElementById('ai-bar-result');
+      if (r) {
+        r.className = 'ai-bar-result success show';
+        r.innerHTML = `✓ ${data.summary}${data.reasoning ? ` <span class="ai-bar-reasoning">— ${data.reasoning}</span>` : ''}`;
+        if (aiResultTimeout) clearTimeout(aiResultTimeout);
+        aiResultTimeout = setTimeout(() => { if (r) r.className = 'ai-bar-result'; }, 6000);
+      }
+    }, 50);
+
+  } catch (err) {
+    render();
+    setTimeout(() => {
+      const r = document.getElementById('ai-bar-result');
+      if (r) {
+        r.className = 'ai-bar-result error show';
+        r.innerHTML = `✗ ${err.message}`;
+        if (aiResultTimeout) clearTimeout(aiResultTimeout);
+        aiResultTimeout = setTimeout(() => { if (r) r.className = 'ai-bar-result'; }, 5000);
+      }
+    }, 50);
+  } finally {
+    aiScheduling = false;
+    // Restore input after render
+    setTimeout(() => {
+      const inp = document.getElementById('ai-bar-input');
+      if (inp) { inp.disabled = false; inp.placeholder = '⚡ schedule with AI...'; inp.focus(); }
+    }, 60);
+  }
+}
 </script>
 </body>
 </html>
