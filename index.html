@@ -2740,7 +2740,7 @@ async function submitAISchedule() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ message, timezone }),
+        body: JSON.stringify({ message, timezone, default_duration: 50, default_break: 10 }),
         signal: controller.signal,
       });
     } finally {

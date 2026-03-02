@@ -261,11 +261,11 @@ def schedule():
     user_tz = get_user_tz(timezone_str)
 
     # 3. Fetch user context from Supabase
-    # Settings
+    # Settings — frontend can override duration/break for AI scheduling
     settings_res = supabase.table("settings").select("*").eq("user_id", user_id).execute()
     settings = settings_res.data[0] if settings_res.data else {}
-    default_duration = settings.get("duration", 50)
-    default_break = settings.get("break", 10)
+    default_duration = body.get("default_duration") or settings.get("duration") or 50
+    default_break = body.get("default_break") or settings.get("break") or 10
 
     # Tags
     tags_res = supabase.table("tags").select("*").eq("user_id", user_id).execute()
