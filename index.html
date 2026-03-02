@@ -7,14 +7,14 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
   :root {
-    --bg-deep:#0d0d0d; --bg-card:#141414; --bg-surface:#1a1a1a; --bg-hover:#222222;
-    --border:#2a2a2a; --border-light:#333333; --border-accent:rgba(225,200,100,0.5);
-    --text-primary:#ffffff; --text-secondary:#999999; --text-muted:#555555;
-    --accent:#e1c864; --accent-light:#f0d97a; --accent-bg:rgba(225,200,100,0.08);
-    --accent-bg-strong:rgba(225,200,100,0.16);
+    --bg-deep:#0a0a0a; --bg-card:#111111; --bg-surface:#181818; --bg-hover:#202020;
+    --border:#2a2a2a; --border-light:#3a3a3a; --border-accent:rgba(255,255,255,0.3);
+    --text-primary:#ffffff; --text-secondary:#888888; --text-muted:#444444;
+    --accent:#ffffff; --accent-light:#f0f0f0; --accent-bg:rgba(255,255,255,0.06);
+    --accent-bg-strong:rgba(255,255,255,0.12);
     --green:#00c28e; --green-bg:rgba(0,194,142,0.1); --green-border:rgba(0,194,142,0.4);
     --red:#ff4444; --red-bg:rgba(255,68,68,0.1);
-    --shadow-accent:rgba(225,200,100,1);
+    --shadow-accent:rgba(255,255,255,0.15);
     --shadow-green:rgba(0,194,142,1);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
@@ -77,7 +77,7 @@
     letter-spacing: -0.5px;
   }
   .login-title span {
-    color: var(--accent);
+    color: var(--text-secondary);
   }
   .login-subtitle {
     font-size: 12px;
@@ -315,7 +315,7 @@
     box-shadow:3px 3px 0px #000;
   }
   .logo-text { font-size:20px; font-weight:900; color:var(--text-primary); letter-spacing:-0.5px; }
-  .logo-text span { color:var(--accent); }
+  .logo-text span { color:var(--text-secondary); }
 
   /* Nav tabs */
   .nav-tabs { display:flex; gap:0; background:transparent; padding:0; border:1px solid var(--border-light); }
