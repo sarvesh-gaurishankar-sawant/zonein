@@ -1396,7 +1396,7 @@ function showApp() {
 
 function updateUserAvatar() {
   if (currentUser) {
-    const initial = (currentUser.email || 'U').charAt(0).toUpperCase();
+    const initial = state.focusSettings.initial || (currentUser.email || 'U').charAt(0).toUpperCase();
     document.getElementById('user-avatar').textContent = initial;
     document.getElementById('user-dropdown-email').textContent = currentUser.email || '';
   }
@@ -1573,7 +1573,8 @@ async function loadFromSupabase() {
         duration: settingsData.duration || 50,
         task: settingsData.task || "desk",
         tag: settingsData.tag || null,
-        autostart: settingsData.autostart || false
+        autostart: settingsData.autostart || false,
+        initial: settingsData.initial || null
       };
     }
 
@@ -1681,7 +1682,8 @@ async function saveSettings() {
         duration: state.focusSettings.duration,
         task: state.focusSettings.task,
         tag: state.focusSettings.tag,
-        autostart: state.focusSettings.autostart
+        autostart: state.focusSettings.autostart,
+        initial: state.focusSettings.initial || null
       }, { onConflict: 'user_id' });
 
     if (error) throw error;
@@ -2320,6 +2322,45 @@ function renderSettings(container) {
           </div>
         </div>
       </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);padding:16px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Profile</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Avatar initial</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Single letter shown in the top-right corner</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="
+              width:36px;height:36px;border-radius:0;
+              background:var(--accent);color:#000;
+              font-size:16px;font-weight:900;font-family:inherit;
+              display:flex;align-items:center;justify-content:center;
+              border:2px solid #000;box-shadow:3px 3px 0 #000;
+            ">${s.initial || (currentUser?.email||'U').charAt(0).toUpperCase()}</div>
+            <input
+              id="initial-input"
+              type="text"
+              maxlength="1"
+              value="${s.initial || ''}"
+              placeholder="${(currentUser?.email||'U').charAt(0).toUpperCase()}"
+              oninput="this.value=this.value.toUpperCase()"
+              style="
+                width:44px;height:36px;text-align:center;
+                font-size:18px;font-weight:900;font-family:inherit;
+                background:var(--bg-surface);color:var(--text-primary);
+                border:1px solid var(--border);outline:none;
+                text-transform:uppercase;
+              "
+            />
+            <button onclick="saveInitial()" style="
+              padding:6px 14px;font-size:11px;font-weight:800;font-family:inherit;
+              background:var(--accent);color:#000;border:1px solid var(--accent);
+              box-shadow:2px 2px 0 #000;cursor:pointer;letter-spacing:0.5px;text-transform:uppercase;
+            ">Save</button>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -2329,6 +2370,18 @@ async function toggleAutostart() {
   await saveSettings();
   scheduleAutostarts();
   render();
+}
+
+async function saveInitial() {
+  const input = document.getElementById('initial-input');
+  if (!input) return;
+  const val = input.value.trim().toUpperCase();
+  if (!val) return;
+  state.focusSettings.initial = val;
+  await saveSettings();
+  updateUserAvatar();
+  render();
+  showToast('Avatar updated!');
 }
 
 function renderTags(container) {
