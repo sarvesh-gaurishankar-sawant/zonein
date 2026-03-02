@@ -1047,12 +1047,14 @@ document.addEventListener('click', () => closeUserDropdown());
 
 async function logout() {
   try {
-    currentUser = null;
     await supabase.auth.signOut();
-    // onAuthStateChange SIGNED_OUT will call showLoginScreen()
   } catch (e) {
     console.error('Logout error:', e);
-    // Fallback: force show login screen manually
+  } finally {
+    currentUser = null;
+    state.sessions = [];
+    state.tags = [];
+    state.focusSettings = { duration: 50, task: 'desk', tag: null };
     showLoginScreen();
   }
 }
