@@ -909,8 +909,14 @@ async function submitAuth() {
   setAuthLoading(true);
   try {
     if (authMode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) errorEl.textContent = error.message;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        errorEl.textContent = error.message;
+      } else {
+        currentUser = data.user;
+        showApp();
+        await loadFromSupabase();
+      }
     } else {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
