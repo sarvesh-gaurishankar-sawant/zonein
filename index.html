@@ -879,15 +879,15 @@
       </div>
       <div class="login-field">
         <label>Email</label>
-        <input class="login-input" id="auth-email" type="email" placeholder="you@example.com">
+        <input class="login-input" id="auth-email" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')submitAuth()">
       </div>
       <div class="login-field">
         <label>Password</label>
-        <input class="login-input" id="auth-password" type="password" placeholder="••••••••">
+        <input class="login-input" id="auth-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()">
       </div>
       <div class="login-field" id="confirm-field" style="display:none;">
         <label>Confirm Password</label>
-        <input class="login-input" id="auth-confirm" type="password" placeholder="••••••••">
+        <input class="login-input" id="auth-confirm" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()">
       </div>
       <div class="login-error" id="auth-error"></div>
       <button class="login-button" id="auth-btn" onclick="submitAuth()">
@@ -903,7 +903,7 @@
       <div class="login-view-desc">Enter your email and we'll send you a reset link.</div>
       <div class="login-field">
         <label>Email</label>
-        <input class="login-input" id="reset-email" type="email" placeholder="you@example.com">
+        <input class="login-input" id="reset-email" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')submitReset()">
       </div>
       <div class="login-error" id="reset-error"></div>
       <button class="login-button" id="reset-btn" onclick="submitReset()">
