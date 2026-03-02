@@ -1482,18 +1482,9 @@ async function saveTask(task) {
   if (!currentUser) return;
   try {
     const data = { ...task, user_id: currentUser.id };
-    if (!data.id) {
-      data.id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-      data.created_at = new Date().toISOString();
-      const { error } = await supabase.from('tasks').insert([data]);
-      if (error) throw error;
-      task.id = data.id;
-      task.created_at = data.created_at;
-    } else {
-      const { error } = await supabase.from('tasks').upsert(data, { onConflict: 'id' });
-      if (error) throw error;
-    }
-  } catch(e) { console.error('Save task error:', e); showToast('Error saving task'); }
+    const { error } = await supabase.from('tasks').upsert(data, { onConflict: 'id' });
+    if (error) throw error;
+  } catch(e) { console.error('Save task error:', e); }
 }
 
 async function deleteTaskFromDB(id) {
@@ -2118,7 +2109,8 @@ async function addTask() {
   if (!inp) return;
   const title = inp.value.trim();
   if (!title) return;
-  const task = { id: null, title, done: false, tag_id: null, created_at: null };
+  const id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const task = { id, title, done: false, tag_id: null, created_at: new Date().toISOString() };
   state.tasks.unshift(task);
   inp.value = "";
   render();
