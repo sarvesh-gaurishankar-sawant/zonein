@@ -978,7 +978,12 @@
   @media (max-width: 600px) {
     /* Full width app, no side margins */
     .app { max-width: 100%; }
-    .bottom-bar { max-width: 100%; padding: 8px 10px; }
+    /* Bottom bar: scrollable, capped height so calendar always has room */
+    .bottom-bar {
+      max-width: 100%; padding: 8px 10px;
+      max-height: 42vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      flex-shrink: 0;
+    }
 
     /* Tighter header */
     .header { padding: 8px 10px; }
@@ -988,8 +993,16 @@
     /* Nav tabs — shrink text */
     .nav-tab { padding: 6px 10px; font-size: 10px; letter-spacing: 0.5px; }
 
-    /* Calendar card — no side margin */
-    .cal-card { margin: 6px 0 0; }
+    /* Calendar card — no side margin, always some minimum height */
+    .cal-card { margin: 6px 0 0; min-height: 200px; }
+
+    /* Taller time rows on mobile for easier tapping */
+    .cal-time-row { height: 14px !important; min-height: 14px !important; max-height: 14px !important; }
+    .cal-slot { height: 14px !important; min-height: 14px !important; max-height: 14px !important; }
+
+    /* Bigger slot popup buttons on mobile */
+    .slot-popup-btn { padding: 10px 6px; font-size: 12px; }
+    .slot-popup { padding: 6px; gap: 6px; }
 
     /* Calendar time label smaller on mobile */
     .cal-time-label { font-size: 8px; }
@@ -2058,7 +2071,7 @@ function render() {
     const calDays = getCalDays();
     const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const startH=0, endH=23, rowHeight=9;
+    const startH=0, endH=23, rowHeight=isMobile()?14:9;
     const timeSlots=[];
     for(let h=startH;h<=endH;h++) for(let m=0;m<60;m+=5) timeSlots.push({hour:h,min:m});
 
