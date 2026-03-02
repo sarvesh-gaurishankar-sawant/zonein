@@ -2745,16 +2745,6 @@ async function submitAISchedule() {
     // Show toast with booking summary (longer duration so user can read it)
     showToast(`✓ ${data.summary}`, 4000);
 
-    // Show result after render (DOM is rebuilt)
-    setTimeout(() => {
-      const r = document.getElementById('ai-bar-result');
-      if (r) {
-        r.className = 'ai-bar-result success show';
-        r.innerHTML = `✓ ${data.summary}${data.reasoning ? ` <span class="ai-bar-reasoning">— ${data.reasoning}</span>` : ''}`;
-        if (aiResultTimeout) clearTimeout(aiResultTimeout);
-        aiResultTimeout = setTimeout(() => { if (r) r.className = 'ai-bar-result'; }, 6000);
-      }
-    }, 50);
 
   } catch (err) {
     render();
