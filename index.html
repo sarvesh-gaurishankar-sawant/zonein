@@ -1627,10 +1627,10 @@ function getTimeLabel(h, m) {
   const hr = h===0?12:(h>12?h-12:h);
   return `${hr}:${String(m).padStart(2,"0")}${ampm}`;
 }
-function showToast(msg) {
+function showToast(msg, duration) {
   const el = document.getElementById("toast");
   el.textContent = msg; el.classList.add("show");
-  setTimeout(()=>el.classList.remove("show"), 2500);
+  setTimeout(()=>el.classList.remove("show"), duration || 2500);
 }
 function sessionEndDate(s) {
   if(s.started_at) return new Date(s.started_at + s.duration * 60000);
@@ -2741,6 +2741,9 @@ async function submitAISchedule() {
     }
     input.value = '';
     render(); // re-render rebuilds bottom bar, result div is re-created
+
+    // Show toast with booking summary (longer duration so user can read it)
+    showToast(`✓ ${data.summary}`, 4000);
 
     // Show result after render (DOM is rebuilt)
     setTimeout(() => {
