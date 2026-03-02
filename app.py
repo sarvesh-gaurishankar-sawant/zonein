@@ -1,13 +1,14 @@
 import os
 import json
 import uuid
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+import pytz
 
 app = Flask(__name__)
 CORS(app)
@@ -17,10 +18,15 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+    raise EnvironmentError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
+if not GEMINI_API_KEY:
+    raise EnvironmentError("GEMINI_API_KEY must be set")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
+    model="gemini-2.5-flash",
     google_api_key=GEMINI_API_KEY,
     temperature=0.2,
 )
@@ -94,12 +100,23 @@ schedule_chain = schedule_prompt | llm | parser
 
 
 # ===== HELPERS =====
-def get_today_str():
-    return date.today().isoformat()
+def get_user_tz(timezone_str: str):
+    """Return a pytz timezone object, defaulting to UTC if invalid."""
+    try:
+        return pytz.timezone(timezone_str)
+    except Exception:
+        return pytz.utc
 
 
-def get_current_time():
-    now = datetime.now()
+def get_today_str(tz=None):
+    """Return today's date string in the user's timezone."""
+    now = datetime.now(tz or pytz.utc)
+    return now.strftime("%Y-%m-%d")
+
+
+def get_current_time(tz=None):
+    """Return current hour and minute in the user's timezone."""
+    now = datetime.now(tz or pytz.utc)
     return now.hour, now.minute
 
 
@@ -116,12 +133,12 @@ def round_up_to_5(hour, minute):
     return hour, minute
 
 
-def find_next_free_slot(booked_sessions, default_duration):
+def find_next_free_slot(booked_sessions, default_duration, tz=None):
     """Find the next free slot after now."""
-    now_h, now_m = get_current_time()
+    now_h, now_m = get_current_time(tz)
     now_h, now_m = round_up_to_5(now_h, now_m)
 
-    today = get_today_str()
+    today = get_today_str(tz)
 
     # Convert booked sessions to occupied minute ranges
     occupied = []
@@ -159,9 +176,9 @@ def calculate_sessions_from_total(total_minutes, duration, break_mins):
     return max(1, sessions)
 
 
-def build_sessions(user_id, parsed, booked_today, default_duration):
+def build_sessions(user_id, parsed, booked_today, default_duration, tz=None):
     """Build session objects to insert into Supabase."""
-    today = get_today_str()
+    today = get_today_str(tz)
     sessions_to_book = []
 
     start_hour = parsed.get("start_hour", -1)
@@ -169,11 +186,17 @@ def build_sessions(user_id, parsed, booked_today, default_duration):
     duration = parsed.get("duration", default_duration)
     break_mins = parsed.get("break", 10)
     num_sessions = parsed.get("sessions", 1)
+
+    # If LLM returned 0 or missing sessions, recalculate from total_minutes if available
+    total_minutes = parsed.get("total_minutes")
+    if (not num_sessions or num_sessions < 1) and total_minutes:
+        num_sessions = calculate_sessions_from_total(total_minutes, duration, break_mins)
+    num_sessions = max(1, int(num_sessions))
     tag_id = parsed.get("tag_id")
 
     # Resolve next_free slot
     if start_hour == -1 or start_min == -1:
-        start_hour, start_min = find_next_free_slot(booked_today, duration)
+        start_hour, start_min = find_next_free_slot(booked_today, duration, tz)
 
     current_h = start_hour
     current_m = start_min
@@ -230,21 +253,27 @@ def schedule():
     user_message = body["message"].strip()
     if not user_message:
         return jsonify({"error": "Empty message"}), 400
+    if len(user_message) > 500:
+        return jsonify({"error": "Message too long (max 500 characters)"}), 400
+
+    # Timezone from client (e.g. "America/New_York"), fallback to UTC
+    timezone_str = body.get("timezone", "UTC")
+    user_tz = get_user_tz(timezone_str)
 
     # 3. Fetch user context from Supabase
     # Settings
     settings_res = supabase.table("settings").select("*").eq("user_id", user_id).execute()
     settings = settings_res.data[0] if settings_res.data else {}
     default_duration = settings.get("duration", 50)
-    default_break = 10
+    default_break = settings.get("break", 10)
 
     # Tags
     tags_res = supabase.table("tags").select("*").eq("user_id", user_id).execute()
     tags = tags_res.data or []
     tags_for_prompt = [{"id": t["id"], "name": t["name"]} for t in tags]
 
-    # Today's booked sessions
-    today = get_today_str()
+    # Today's booked sessions (use user's local date)
+    today = get_today_str(user_tz)
     sessions_res = (
         supabase.table("sessions")
         .select("*")
@@ -260,7 +289,7 @@ def schedule():
     ]
 
     # 4. Call Gemini via LangChain
-    now = datetime.now()
+    now = datetime.now(user_tz)
     try:
         parsed = schedule_chain.invoke({
             "current_datetime": now.strftime("%Y-%m-%d %H:%M"),
@@ -274,18 +303,25 @@ def schedule():
     except Exception as e:
         return jsonify({"error": f"AI parsing failed: {str(e)}"}), 500
 
-    # 5. Build sessions
+    # 5. Validate tag_id returned by LLM against real user tags
+    valid_tag_ids = {t["id"] for t in tags}
+    if parsed.get("tag_id") and parsed["tag_id"] not in valid_tag_ids:
+        parsed["tag_id"] = None
+        parsed["tag_name"] = None
+
+    # 6. Build sessions
     try:
         sessions_to_book = build_sessions(
             user_id=user_id,
             parsed=parsed,
             booked_today=booked_today,
             default_duration=default_duration,
+            tz=user_tz,
         )
     except Exception as e:
         return jsonify({"error": f"Session building failed: {str(e)}"}), 500
 
-    # 6. Insert into Supabase
+    # 7. Insert into Supabase
     if not sessions_to_book:
         return jsonify({"error": "No sessions to book"}), 400
 
@@ -294,7 +330,7 @@ def schedule():
     except Exception as e:
         return jsonify({"error": f"Database insert failed: {str(e)}"}), 500
 
-    # 7. Return booked sessions + summary
+    # 8. Return booked sessions + summary
     num = len(sessions_to_book)
     first = sessions_to_book[0]
     start_label = f"{first['start_hour']}:{str(first['start_min']).zfill(2)}"
