@@ -824,6 +824,8 @@
     <div class="modal-title" id="modal-title">Session Details</div>
     <div class="modal-subtitle" id="modal-subtitle"></div>
     <div class="modal-info-row" id="modal-info"></div>
+    <div class="modal-field-label" style="margin-bottom:6px">Tag</div>
+    <div id="modal-tag-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
     <div class="modal-field-label">What did you work on?</div>
     <textarea class="modal-textarea" id="modal-notes" placeholder="e.g. Solved 3 LeetCode mediums on trees, reviewed binary search patterns..."></textarea>
     <div class="modal-btn-row">
@@ -1556,7 +1558,6 @@ function openSessionModal(id) {
   if(!s) return;
   modalSessionId = id;
 
-  const sTag = s.tag ? state.tags.find(t=>t.id===s.tag) : null;
   const statusLabel = s.status==="active" ? "In Progress" : s.status==="completed" ? "Completed" : s.status==="booked" ? "Booked" : s.status;
 
   document.getElementById("modal-title").textContent = "Session Details";
@@ -1565,12 +1566,38 @@ function openSessionModal(id) {
   document.getElementById("modal-info").innerHTML = `
     <span class="modal-info-chip">${s.duration} min</span>
     <span class="modal-info-chip">${statusLabel}</span>
-    ${sTag ? `<span class="modal-info-chip" style="border-color:${sTag.color}40;color:${sTag.color}">${sTag.name}</span>` : ""}
   `;
+
+  // Render tag selector
+  renderModalTagRow(s.tag || null);
 
   document.getElementById("modal-notes").value = s.notes || "";
   document.getElementById("modal-overlay").classList.add("show");
   setTimeout(()=>document.getElementById("modal-notes").focus(), 100);
+}
+
+function renderModalTagRow(selectedTagId) {
+  const row = document.getElementById("modal-tag-row");
+  if (!row) return;
+  const noneActive = !selectedTagId;
+  row.innerHTML = `
+    <button class="tag-sel-btn ${noneActive ? "active" : ""}" onclick="selectModalTag(null)">None</button>
+    ${state.tags.map(t => `
+      <button class="tag-sel-btn ${selectedTagId === t.id ? "active" : ""}"
+        onclick="selectModalTag('${t.id}')"
+        style="${selectedTagId === t.id ? "" : `border-color:${t.color}55`}">
+        <span class="tag-sel-dot" style="background:${t.color}"></span>${t.name}
+      </button>
+    `).join("")}
+    ${state.tags.length === 0 ? '<span style="font-size:11px;color:var(--text-muted)">No tags yet — create some in the Tags tab</span>' : ""}
+  `;
+}
+
+function selectModalTag(tagId) {
+  const s = state.sessions.find(x => x.id === modalSessionId);
+  if (!s) return;
+  s.tag = tagId;
+  renderModalTagRow(tagId);
 }
 
 function closeModal(e) {
@@ -1584,11 +1611,12 @@ async function saveSessionNotes() {
   const s = state.sessions.find(x=>x.id===modalSessionId);
   if(!s) return;
   s.notes = document.getElementById("modal-notes").value.trim();
+  // s.tag is already updated live via selectModalTag()
   await saveSession(s);
   render();
   document.getElementById("modal-overlay").classList.remove("show");
   modalSessionId = null;
-  showToast("Notes saved!");
+  showToast("Saved!");
 }
 
 async function deleteSessionFromModal() {
