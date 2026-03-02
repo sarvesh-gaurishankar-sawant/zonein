@@ -973,6 +973,70 @@
   .ai-send-btn:hover { transform: translate(1px,1px); box-shadow: 1px 1px 0px #000; }
   .ai-send-btn:active { transform: translate(2px,2px); box-shadow: 0px 0px 0px #000; }
   .ai-send-btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: 2px 2px 0px #000; }
+
+  /* ===== MOBILE RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    /* Full width app, no side margins */
+    .app { max-width: 100%; }
+    .bottom-bar { max-width: 100%; padding: 8px 10px; }
+
+    /* Tighter header */
+    .header { padding: 8px 10px; }
+    .logo-text { font-size: 17px; }
+    .logo-icon { width: 28px; height: 28px; font-size: 14px; }
+
+    /* Nav tabs — shrink text */
+    .nav-tab { padding: 6px 10px; font-size: 10px; letter-spacing: 0.5px; }
+
+    /* Calendar card — no side margin */
+    .cal-card { margin: 6px 0 0; }
+
+    /* Calendar time label smaller on mobile */
+    .cal-time-label { font-size: 8px; }
+
+    /* Bottom bar — stack AI input and make buttons bigger for touch */
+    .ai-section { padding-bottom: 6px; margin-bottom: 2px; }
+    .ai-inline-input { font-size: 13px; height: 38px; }
+    .ai-send-btn { height: 38px; padding: 0 16px; font-size: 12px; }
+
+    /* Duration buttons — bigger touch targets */
+    .dur-btn { padding: 8px 0; font-size: 14px; }
+    .dur-btn span { font-size: 10px; }
+
+    /* Book button — bigger */
+    .book-bar-btn { padding: 13px; font-size: 14px; }
+
+    /* Tag selector — scrollable row */
+    .tag-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tag-sel-btn { padding: 6px 12px; font-size: 11px; }
+
+    /* Modal full width on mobile */
+    .modal { width: 95%; padding: 16px; }
+
+    /* Stats grid — still 2 columns but tighter */
+    .stats-grid { gap: 6px; }
+    .stat-value { font-size: 20px; }
+
+    /* Toast — full width on mobile */
+    .toast { left: 10px; right: 10px; transform: none; width: auto; font-size: 12px; }
+
+    /* Notif popup — full width on mobile */
+    .notif-popup { left: 10px; right: 10px; min-width: unset; }
+
+    /* Inbox items — better touch targets */
+    .inbox-item { padding: 12px 10px; }
+
+    /* Login card */
+    .login-card { padding: 28px 20px; }
+  }
+
+  @media (max-width: 400px) {
+    /* Very small phones */
+    .nav-tab { padding: 5px 7px; font-size: 9px; }
+    .logo-text { font-size: 15px; }
+    .dur-label { display: none; } /* hide "DURATION" label to save space */
+    .book-bar-btn { font-size: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -1654,10 +1718,12 @@ function sessionEndDate(s) {
   return new Date(start.getTime() + s.duration * 60000);
 }
 
+function isMobile() { return window.innerWidth <= 600; }
 function getCalDays() {
+  const cols = isMobile() ? 1 : 3;
   const days = [], base = new Date();
-  base.setDate(base.getDate() + state.calOffset * 3);
-  for(let i=0;i<3;i++) { const d=new Date(base); d.setDate(d.getDate()+i); days.push(d); }
+  base.setDate(base.getDate() + state.calOffset * cols);
+  for(let i=0;i<cols;i++) { const d=new Date(base); d.setDate(d.getDate()+i); days.push(d); }
   return days;
 }
 function getSessionsForSlotAt(date, hour, min) {
@@ -2015,7 +2081,7 @@ function render() {
             <button class="cal-nav" onclick="state.calOffset++;render()">›</button>
           </div>
         </div>
-        <div class="cal-day-headers">
+        <div class="cal-day-headers" style="grid-template-columns:${isMobile()?'32px':'36px'} repeat(${calDays.length},1fr)">
           <div></div>
           ${calDays.map(d=>{
             const dk=getDateKey(d), isT=dk===today;
@@ -2034,7 +2100,7 @@ function render() {
             const h=slot.hour, m=slot.min, isHour=m===0;
             const is15 = m%15===0;
             const tLabel = isHour ? getHourLabel(h) : (is15 ? `:${String(m).padStart(2,"0")}` : "");
-            return `<div class="cal-time-row ${isHour?"hour-row":(is15?"quarter-row":"")}">
+            return `<div class="cal-time-row ${isHour?"hour-row":(is15?"quarter-row":"")}" style="grid-template-columns:${isMobile()?'32px':'36px'} repeat(${calDays.length},1fr)">
               <div class="cal-time-label ${isHour?"hour-label":""}">${tLabel}</div>
               ${calDays.map(d=>{
                 const dk=getDateKey(d), past=isSlotPast(dk,h,m);
@@ -2684,6 +2750,7 @@ function restoreActiveTimers() {
 initializeAuth();
 setInterval(()=>{ updateSessionStatuses(); render(); }, 60000);
 setInterval(updateCountdowns, 1000);
+window.addEventListener('resize', ()=>render());
 
 // ===== AI COMMAND BAR =====
 const FLASK_URL = 'https://zonein.fly.dev';
