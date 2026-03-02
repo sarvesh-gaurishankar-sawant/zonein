@@ -1186,6 +1186,7 @@
         <button class="nav-tab" id="tab-inbox" onclick="switchTab('inbox')">Inbox</button>
         <button class="nav-tab" id="tab-tags" onclick="switchTab('tags')">Tags</button>
         <button class="nav-tab" id="tab-stats" onclick="switchTab('stats')">Stats</button>
+        <button class="nav-tab" id="tab-settings" onclick="switchTab('settings')">Settings</button>
       </div>
       <div class="user-section" id="user-section" style="display:none;">
         <div class="user-avatar" id="user-avatar" onclick="toggleUserDropdown(event)">U</div>
@@ -1421,7 +1422,7 @@ async function logout() {
     state.sessions = [];
     state.tags = [];
     state.tasks = [];
-    state.focusSettings = { duration: 50, task: 'desk', tag: null };
+    state.focusSettings = { duration: 50, task: 'desk', tag: null, autostart: false };
     showLoginScreen();
   }
 }
@@ -1516,7 +1517,7 @@ const TAG_COLORS = ["#6366f1","#8b5cf6","#ec4899","#f97316","#eab308","#22c55e",
 
 let state = {
   sessions:[],
-  focusSettings:{ duration:50, task:"desk", tag:null },
+  focusSettings:{ duration:50, task:"desk", tag:null, autostart:false },
   tags:[],
   tasks:[],
   calOffset:0,
@@ -1571,12 +1572,14 @@ async function loadFromSupabase() {
       state.focusSettings = {
         duration: settingsData.duration || 50,
         task: settingsData.task || "desk",
-        tag: settingsData.tag || null
+        tag: settingsData.tag || null,
+        autostart: settingsData.autostart || false
       };
     }
 
     updateSessionStatuses();
     restoreActiveTimers();
+    scheduleAutostarts();
     render();
   } catch (e) {
     console.error('Load error:', e);
@@ -1677,7 +1680,8 @@ async function saveSettings() {
         user_id: currentUser.id,
         duration: state.focusSettings.duration,
         task: state.focusSettings.task,
-        tag: state.focusSettings.tag
+        tag: state.focusSettings.tag,
+        autostart: state.focusSettings.autostart
       }, { onConflict: 'user_id' });
 
     if (error) throw error;
@@ -1777,6 +1781,7 @@ async function bookSession(date, hour, min) {
   state.sessions.push(newSession);
   state.selectedSlot=null;
   await saveSession(newSession);
+  scheduleAutostarts();
   render();
   showToast(`${state.focusSettings.duration}min session booked!`);
 }
@@ -2261,7 +2266,69 @@ function render() {
   } else if(state.view==="stats") {
     bottomBar.style.display="none";
     renderStats(content);
+  } else if(state.view==="settings") {
+    bottomBar.style.display="none";
+    renderSettings(content);
   }
+}
+
+function renderSettings(container) {
+  const s = state.focusSettings;
+  container.innerHTML = `
+    <div class="stats-page">
+      <div style="font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:16px;">Settings</div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);padding:16px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;">Session</div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Auto-start sessions</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Automatically start a booked session at its scheduled time</div>
+          </div>
+          <button onclick="toggleAutostart()" style="
+            width:44px;height:24px;border-radius:999px;border:none;cursor:pointer;
+            background:${s.autostart ? 'var(--accent)' : 'var(--bg-surface)'};
+            border:1px solid ${s.autostart ? 'var(--accent)' : 'var(--border-light)'};
+            position:relative;transition:all 0.2s;flex-shrink:0;
+          ">
+            <span style="
+              position:absolute;top:3px;
+              left:${s.autostart ? '22px' : '3px'};
+              width:16px;height:16px;border-radius:50%;
+              background:${s.autostart ? '#000' : 'var(--text-muted)'};
+              transition:left 0.2s;display:block;
+            "></span>
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Default duration</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Default session length when booking</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            ${[25,50,75].map(d=>`
+              <button onclick="state.focusSettings.duration=${d};saveSettings();render();" style="
+                padding:5px 12px;border-radius:999px;cursor:pointer;font-size:12px;font-weight:800;font-family:inherit;
+                background:${s.duration===d?'var(--accent)':'var(--bg-surface)'};
+                color:${s.duration===d?'#000':'var(--text-secondary)'};
+                border:1px solid ${s.duration===d?'var(--accent)':'var(--border)'};
+                ${s.duration===d?'box-shadow:2px 2px 0 #000;':''};
+              ">${d}m</button>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function toggleAutostart() {
+  state.focusSettings.autostart = !state.focusSettings.autostart;
+  await saveSettings();
+  scheduleAutostarts();
+  render();
 }
 
 function renderTags(container) {
@@ -2776,6 +2843,38 @@ function restoreActiveTimers() {
           delete sessionTimers[s.id];
         }, msLeft);
       }
+    }
+  });
+}
+
+// ===== AUTOSTART =====
+const autostartTimers = {};
+
+function scheduleAutostarts() {
+  // Clear any existing autostart timers
+  Object.keys(autostartTimers).forEach(id => {
+    clearTimeout(autostartTimers[id]);
+    delete autostartTimers[id];
+  });
+
+  if (!state.focusSettings.autostart) return;
+
+  const now = Date.now();
+  state.sessions.forEach(s => {
+    if (s.status !== "booked") return;
+    // Build the scheduled start time from date + start_hour + start_min
+    const [year, month, day] = s.date.split("-").map(Number);
+    const startTime = new Date(year, month - 1, day, s.start_hour, s.start_min, 0).getTime();
+    const msUntil = startTime - now;
+    if (msUntil > 0) {
+      autostartTimers[s.id] = setTimeout(async () => {
+        const sess = state.sessions.find(x => x.id === s.id);
+        if (sess && sess.status === "booked") {
+          await startSession(s.id);
+          showToast(`⚡ Auto-started: ${sess.start_hour % 12 || 12}:${String(sess.start_min).padStart(2,"0")}${sess.start_hour >= 12 ? "pm" : "am"} session`);
+        }
+        delete autostartTimers[s.id];
+      }, msUntil);
     }
   });
 }
