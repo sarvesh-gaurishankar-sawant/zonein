@@ -2616,14 +2616,26 @@ async function submitAISchedule() {
   if (result) { result.className = 'ai-bar-result'; }
 
   try {
-    const res = await fetch(`${FLASK_URL}/api/schedule`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ message }),
-    });
+    // Wake up fly.io machine if it's cold (fire and forget)
+    fetch(`${FLASK_URL}/health`).catch(() => {});
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    let res;
+    try {
+      res = await fetch(`${FLASK_URL}/api/schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ message }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.error || 'Something went wrong');
@@ -2652,7 +2664,8 @@ async function submitAISchedule() {
       const r = document.getElementById('ai-bar-result');
       if (r) {
         r.className = 'ai-bar-result error show';
-        r.innerHTML = `✗ ${err.message}`;
+        const msg = err.name === 'AbortError' ? 'Server is waking up — try again in a few seconds' : err.message;
+        r.innerHTML = `✗ ${msg}`;
         if (aiResultTimeout) clearTimeout(aiResultTimeout);
         aiResultTimeout = setTimeout(() => { if (r) r.className = 'ai-bar-result'; }, 5000);
       }
