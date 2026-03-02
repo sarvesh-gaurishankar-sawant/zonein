@@ -5,7 +5,7 @@ from datetime import datetime, date
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
-from langchain_xai import ChatXAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 import pytz
@@ -16,18 +16,18 @@ CORS(app)
 # ===== CONFIG =====
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-XAI_API_KEY = os.environ.get("XAI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
     raise EnvironmentError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set")
-if not XAI_API_KEY:
-    raise EnvironmentError("XAI_API_KEY must be set")
+if not GEMINI_API_KEY:
+    raise EnvironmentError("GEMINI_API_KEY must be set")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-llm = ChatXAI(
-    model="grok-3-mini",
-    xai_api_key=XAI_API_KEY,
+llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash-8b",
+    google_api_key=GEMINI_API_KEY,
     temperature=0.2,
 )
 
