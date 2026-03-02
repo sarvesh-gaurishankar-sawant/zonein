@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ZoneIn - Focus Session Calendar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+  :root {
+    --bg-deep:#1a1410; --bg-card:#241e18; --bg-surface:#2e261f; --bg-hover:#382f27;
+    --border:#3d3328; --border-light:#4a3d30; --border-accent:rgba(217,142,72,0.35);
+    --text-primary:#f0e6d6; --text-secondary:#a89580; --text-muted:#6b5d4f;
+    --accent:#d98e48; --accent-light:#e8a962; --accent-bg:rgba(217,142,72,0.12);
+    --accent-bg-strong:rgba(217,142,72,0.22);
+    --green:#5cb87a; --green-bg:rgba(92,184,122,0.15); --green-border:rgba(92,184,122,0.4);
+    --red:#c9553a; --red-bg:rgba(201,85,58,0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height:100%; overflow:hidden; }
+  body {
+    height:100vh; background:var(--bg-deep);
+    color:var(--text-primary); font-family:'Inter',-apple-system,sans-serif;
+    display:flex; flex-direction:column;
+  }
+  @keyframes slideDown { from{opacity:0;transform:translate(-50%,-20px)} to{opacity:1;transform:translate(-50%,0)} }
+  @keyframes pulse-border { 0%,100%{border-color:var(--green-border)} 50%{border-color:var(--green)} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes notifSlideIn { from{opacity:0;transform:translateY(30px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+  /* Login screen styles */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .login-screen.hidden {
+    display: none;
+  }
+  .login-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    padding: 40px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .login-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .login-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--bg-deep);
+    box-shadow: 0 4px 16px rgba(217,142,72,0.3);
+  }
+  .login-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+  .login-title span {
+    color: var(--accent);
+  }
+  .login-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    margin-bottom: 28px;
+  }
+  .login-view-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .login-view-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+  .login-text-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    display: block;
+    width: 100%;
+    text-align: center;
+    transition: color 0.15s;
+    padding: 4px 0;
+  }
+  .login-text-btn:hover { color: var(--accent); }
+  .login-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-surface);
+    border-radius: 10px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .login-tab {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .login-tab.active {
+    background: var(--accent-bg-strong);
+    color: var(--accent);
+  }
+  .login-field {
+    margin-bottom: 12px;
+    text-align: left;
+  }
+  .login-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    letter-spacing: 0.3px;
+  }
+  .login-input {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .login-input:focus {
+    border-color: var(--accent);
+  }
+  .login-input::placeholder {
+    color: var(--text-muted);
+  }
+  .login-error {
+    font-size: 12px;
+    color: var(--red);
+    margin-bottom: 10px;
+    min-height: 16px;
+    text-align: left;
+  }
+  .login-button {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: var(--bg-deep);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(217,142,72,0.25);
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .login-button:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+  .login-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .login-loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(26,20,16,0.3);
+    border-top-color: var(--bg-deep);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* User avatar + dropdown */
+  .user-section {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--accent-bg-strong);
+    border: 1px solid var(--border-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .user-avatar:hover { background: var(--accent-bg); }
+  .user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    z-index: 500;
+    overflow: hidden;
+    display: none;
+    animation: fadeIn 0.15s ease-out;
+  }
+  .user-dropdown.open { display: block; }
+  .user-dropdown-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .user-dropdown-email {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    word-break: break-all;
+  }
+  .user-dropdown-item {
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.12s;
+  }
+  .user-dropdown-item:hover { background: var(--bg-hover); }
+
+  .app { flex:1; display:flex; flex-direction:column; max-width:700px; width:100%; margin:0 auto; min-height:0; overflow:hidden; }
+
+  .toast {
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:var(--accent); color:var(--bg-deep);
+    padding:10px 20px; border-radius:12px; font-size:14px; font-weight:700;
+    box-shadow:0 8px 32px rgba(217,142,72,0.3); z-index:1000;
+    animation:slideDown 0.3s ease-out; display:none;
+  }
+  .toast.show { display:block; }
+
+  /* Header */
+  .header { padding:10px 14px 0; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+  .logo { display:flex; align-items:center; gap:8px; }
+  .logo-icon {
+    width:32px; height:32px; border-radius:10px; background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:900; color:var(--bg-deep);
+    box-shadow:0 2px 12px rgba(217,142,72,0.3);
+  }
+  .logo-text { font-size:20px; font-weight:800; color:var(--text-primary); }
+  .logo-text span { color:var(--accent); }
+
+  /* Nav tabs */
+  .nav-tabs { display:flex; gap:2px; background:var(--bg-card); border-radius:10px; padding:3px; border:1px solid var(--border); }
+  .nav-tab {
+    padding:6px 14px; border-radius:8px; border:none; cursor:pointer;
+    font-size:12px; font-weight:600; background:transparent; color:var(--text-muted);
+    transition:all 0.2s; font-family:inherit;
+  }
+  .nav-tab.active { background:var(--accent-bg-strong); color:var(--accent); }
+  .nav-tab:hover { color:var(--text-secondary); }
+
+  /* Calendar card */
+  .cal-card {
+    flex:1; margin:8px 10px 0; background:var(--bg-card); border-radius:14px;
+    border:1px solid var(--border); display:flex; flex-direction:column;
+    overflow:hidden; min-height:0;
+  }
+  .cal-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .cal-title { font-size:14px; font-weight:700; color:var(--text-primary); }
+  .cal-nav-group { display:flex; gap:4px; align-items:center; }
+  .cal-nav {
+    background:none; border:1px solid var(--border-light); color:var(--accent);
+    width:28px; height:28px; border-radius:8px; cursor:pointer; font-size:14px;
+    font-family:inherit; display:flex; align-items:center; justify-content:center; transition:all 0.15s;
+  }
+  .cal-nav:hover { background:var(--accent-bg); }
+  .cal-today-btn {
+    background:none; border:1px solid var(--border-light); color:var(--accent);
+    height:28px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:600;
+    font-family:inherit; padding:0 10px; transition:all 0.15s;
+  }
+  .cal-today-btn:hover { background:var(--accent-bg); }
+
+  /* Day column headers */
+  .cal-day-headers {
+    display:grid; grid-template-columns:36px repeat(3,1fr); gap:0;
+    border-bottom:1px solid var(--border); padding:4px 0; flex-shrink:0;
+  }
+  .cal-day-hdr { text-align:center; font-size:11px; font-weight:600; color:var(--text-secondary); border-left:1px solid var(--border); }
+  .cal-day-hdr:first-child { border:none; }
+  .cal-day-hdr.today-hdr { color:var(--accent); }
+
+  /* Timeline */
+  .cal-scroll { flex:1; overflow-y:auto; position:relative; }
+  .cal-time-row {
+    display:grid; grid-template-columns:36px repeat(3,1fr); gap:0;
+    height:9px; min-height:9px; max-height:9px; border-top:1px solid transparent; overflow:visible;
+  }
+  .cal-time-row.hour-row { border-top:1px solid var(--border); }
+  .cal-time-row.quarter-row { border-top:1px solid rgba(61,51,40,0.4); }
+  .cal-time-label { font-size:8px; color:var(--text-muted); padding:1px 3px 0 0; text-align:right; white-space:nowrap; }
+  .cal-time-label.hour-label { font-size:9px; color:var(--text-secondary); font-weight:600; }
+  .cal-slot {
+    border-left:1px solid rgba(61,51,40,0.25); height:9px; min-height:9px; max-height:9px;
+    cursor:pointer; transition:background 0.15s; position:relative; overflow-x:clip; overflow-y:visible; padding:0;
+  }
+  .cal-slot:hover { background:var(--accent-bg); }
+  .cal-slot.past-slot { opacity:0.35; cursor:default; }
+  .cal-slot.past-slot:hover { background:transparent; }
+
+  /* Session blocks */
+  .session-block {
+    border-radius:8px; padding:4px 6px; font-size:9px; font-weight:600;
+    position:absolute; top:0; left:1px; width:calc(100% - 2px); overflow:hidden;
+    cursor:pointer; transition:all 0.15s; z-index:8;
+  }
+  .session-block:hover { filter:brightness(1.1); }
+  .session-block.booked {
+    background:var(--accent-bg-strong); border:1px solid var(--border-accent); color:var(--accent-light);
+  }
+  .session-block.active {
+    background:var(--green-bg); border:1px solid var(--green-border); color:var(--green);
+    animation:pulse-border 2s infinite;
+  }
+  .session-block.completed {
+    background:rgba(168,149,128,0.08); border:1px solid rgba(168,149,128,0.15); color:var(--text-secondary);
+  }
+  .session-actions { position:absolute; top:3px; right:3px; display:flex; gap:2px; z-index:10; }
+  .session-action-btn {
+    width:20px; height:20px; border-radius:6px; border:1px solid var(--border-light);
+    background:var(--bg-deep); color:var(--text-secondary); cursor:pointer; font-size:10px;
+    display:flex; align-items:center; justify-content:center; transition:all 0.15s;
+    font-family:inherit; padding:0;
+  }
+  .session-action-btn:hover { background:var(--accent-bg-strong); color:var(--accent); }
+  .session-action-btn.x-btn:hover { background:var(--red-bg); color:var(--red); }
+
+  /* Inline popups */
+  .slot-popup {
+    position:absolute; top:0; left:0; width:100%; z-index:20;
+    background:var(--accent-bg); border:2px solid var(--border-accent);
+    border-radius:10px; padding:5px; display:flex; flex-direction:column; gap:4px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.5); justify-content:center; align-items:stretch;
+  }
+  .slot-popup-btn {
+    flex:1; padding:7px 4px; border-radius:8px; border:none; cursor:pointer;
+    font-size:12px; font-weight:700; font-family:inherit; transition:all 0.15s;
+  }
+  .slot-popup-btn.book { background:var(--accent); color:var(--bg-deep); }
+  .slot-popup-btn.book:hover { filter:brightness(1.1); }
+  .slot-popup-btn.clear { background:var(--bg-surface); color:var(--text-secondary); }
+  .slot-popup-btn.clear:hover { background:var(--bg-hover); }
+
+  .cancel-popup {
+    position:absolute; top:0; left:1px; width:calc(100% - 2px); z-index:20;
+    background:var(--bg-deep); border:2px solid var(--border-accent);
+    border-radius:10px; padding:5px; display:flex; flex-direction:column; gap:4px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  }
+  .cancel-popup-btn {
+    flex:1; padding:7px 4px; border-radius:8px; border:none; cursor:pointer;
+    font-size:12px; font-weight:700; font-family:inherit; transition:all 0.15s;
+  }
+  .cancel-popup-btn.keep { background:var(--bg-surface); color:var(--text-primary); }
+  .cancel-popup-btn.keep:hover { background:var(--bg-hover); }
+  .cancel-popup-btn.cancel-confirm { background:transparent; color:var(--red); border:1px solid rgba(201,85,58,0.3); }
+  .cancel-popup-btn.cancel-confirm:hover { background:var(--red-bg); }
+
+  /* Now line */
+  .now-line { position:absolute; left:36px; right:0; height:2px; background:var(--accent); z-index:5; pointer-events:none; }
+  .now-dot { position:absolute; left:32px; width:9px; height:9px; border-radius:50%; background:var(--accent); z-index:6; transform:translateY(-3.5px); pointer-events:none; }
+  .now-time-label { position:absolute; left:0; font-size:8px; color:var(--accent); font-weight:700; transform:translateY(-5px); pointer-events:none; z-index:6; }
+
+  /* Bottom bar */
+  .bottom-bar {
+    padding:8px 12px; margin:0 auto; max-width:700px; width:100%;
+    display:flex; flex-direction:column; gap:6px;
+    background:var(--bg-card); border-top:1px solid var(--border);
+    backdrop-filter:blur(12px); flex-shrink:0;
+  }
+  .duration-row { display:flex; gap:6px; align-items:center; }
+  .dur-label { font-size:11px; color:var(--text-muted); font-weight:600; margin-right:4px; white-space:nowrap; }
+  .dur-btn {
+    flex:1; padding:6px 0; border-radius:10px; border:1px solid var(--border);
+    background:var(--bg-surface); cursor:pointer; text-align:center;
+    font-size:13px; font-weight:700; font-family:inherit; color:var(--text-secondary); transition:all 0.15s;
+  }
+  .dur-btn.active { background:var(--accent-bg-strong); border-color:var(--border-accent); color:var(--accent); }
+  .dur-btn span { font-size:10px; font-weight:600; display:block; color:var(--text-muted); }
+  .dur-btn.active span { color:var(--accent-light); }
+  .book-bar-btn {
+    width:100%; padding:10px; border:none; border-radius:12px; cursor:pointer;
+    font-size:14px; font-weight:700; font-family:inherit; color:var(--bg-deep);
+    background:var(--accent); box-shadow:0 4px 16px rgba(217,142,72,0.25); transition:all 0.15s;
+  }
+  .book-bar-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  .book-bar-btn:disabled { opacity:0.3; cursor:default; transform:none; filter:none; }
+  .book-bar-btn .bolt { display:inline-block; margin-right:6px; }
+
+  /* Stats page */
+  .stats-page { flex:1; padding:10px 10px 12px; overflow-y:auto; animation:fadeIn 0.2s ease-out; min-height:0; }
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+  .stat-card { background:var(--bg-card); border-radius:12px; padding:10px; border:1px solid var(--border); }
+  .stat-value { font-size:22px; font-weight:800; color:var(--text-primary); }
+  .stat-label { font-size:10px; color:var(--text-muted); margin-top:1px; }
+  .stat-card.wide { grid-column:1/-1; }
+  .streak-bar { display:flex; gap:3px; margin-top:6px; }
+  .streak-day {
+    flex:1; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    font-size:8px; font-weight:600;
+  }
+  .streak-day.done { background:var(--accent-bg-strong); color:var(--accent); border:1px solid var(--border-accent); }
+  .streak-day.empty { background:var(--bg-surface); color:var(--text-muted); border:1px solid var(--border); }
+  .streak-day.today { border-color:var(--accent); }
+  .weekly-chart { display:flex; align-items:flex-end; gap:5px; height:60px; margin-top:8px; }
+  .weekly-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .weekly-bar { width:100%; border-radius:4px 4px 0 0; background:linear-gradient(180deg,var(--accent),rgba(217,142,72,0.3)); transition:height 0.3s; }
+  .weekly-bar-label { font-size:8px; color:var(--text-muted); }
+  .weekly-bar-val { font-size:9px; color:var(--text-secondary); font-weight:600; }
+
+  /* Tags page */
+  .tags-page { flex:1; padding:10px 10px 12px; overflow-y:auto; animation:fadeIn 0.2s ease-out; min-height:0; display:flex; flex-direction:column; gap:10px; }
+  .tags-section { background:var(--bg-card); border-radius:14px; border:1px solid var(--border); padding:14px; }
+  .tags-section-title { font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:10px; }
+  .tag-list { display:flex; flex-direction:column; gap:6px; }
+  .tag-item {
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px;
+    background:var(--bg-surface); border:1px solid var(--border); transition:all 0.15s;
+  }
+  .tag-item:hover { border-color:var(--border-light); }
+  .tag-item-color { width:10px; height:10px; border-radius:50%; flex-shrink:0; box-shadow:0 0 6px rgba(0,0,0,0.2); }
+  .tag-item-name { flex:1; font-size:13px; font-weight:600; color:var(--text-primary); }
+  .tag-item-count { font-size:11px; color:var(--text-muted); font-weight:600; margin-right:4px; }
+  .tag-item-del {
+    width:24px; height:24px; border-radius:6px; border:1px solid var(--border);
+    background:transparent; color:var(--text-muted); cursor:pointer; font-size:11px;
+    display:flex; align-items:center; justify-content:center; transition:all 0.15s; padding:0; font-family:inherit;
+  }
+  .tag-item-del:hover { background:var(--red-bg); color:var(--red); border-color:rgba(201,85,58,0.3); }
+  .tags-empty { text-align:center; padding:20px 0; color:var(--text-muted); font-size:13px; }
+  .add-tag-row { display:flex; gap:6px; align-items:center; }
+  .add-tag-input {
+    flex:1; padding:10px 12px; border-radius:10px; border:1px solid var(--border-light);
+    background:var(--bg-surface); color:var(--text-primary); font-size:13px; font-family:inherit;
+    outline:none; transition:border-color 0.15s;
+  }
+  .add-tag-input:focus { border-color:var(--accent); }
+  .add-tag-input::placeholder { color:var(--text-muted); }
+  .add-tag-btn {
+    padding:10px 18px; border-radius:10px; border:none; cursor:pointer;
+    background:var(--accent); color:var(--bg-deep);
+    font-size:13px; font-weight:700; font-family:inherit; transition:all 0.15s; white-space:nowrap;
+  }
+  .add-tag-btn:hover { filter:brightness(1.08); }
+  .color-picker-row { display:flex; gap:6px; margin-top:10px; }
+  .color-dot { width:26px; height:26px; border-radius:50%; cursor:pointer; border:2.5px solid transparent; transition:all 0.15s; }
+  .color-dot.active { border-color:var(--text-primary); transform:scale(1.15); box-shadow:0 0 10px rgba(0,0,0,0.3); }
+  .color-dot:hover { transform:scale(1.1); }
+  .color-preview { display:flex; align-items:center; gap:8px; margin-top:10px; padding:8px 12px; border-radius:8px; background:var(--bg-deep); border:1px solid var(--border); }
+  .color-preview-dot { width:8px; height:8px; border-radius:50%; }
+  .color-preview-text { font-size:11px; color:var(--text-muted); }
+
+  /* Tag selector in bottom bar */
+  .tag-row { display:flex; gap:4px; align-items:center; overflow-x:auto; padding-bottom:2px; }
+  .tag-sel-btn {
+    padding:4px 10px; border-radius:14px; border:1px solid var(--border);
+    background:var(--bg-surface); cursor:pointer; font-size:11px; font-weight:600;
+    font-family:inherit; color:var(--text-secondary); transition:all 0.15s; white-space:nowrap;
+    display:flex; align-items:center; gap:4px;
+  }
+  .tag-sel-btn.active { border-color:var(--border-accent); background:var(--accent-bg-strong); color:var(--accent); }
+  .tag-sel-dot { width:6px; height:6px; border-radius:50%; }
+
+  /* Stats period selector */
+  .stats-period-row { display:flex; gap:3px; margin-bottom:12px; background:var(--bg-surface); border-radius:10px; padding:3px; border:1px solid var(--border); }
+  .stats-period-btn {
+    flex:1; padding:5px 0; border-radius:8px; border:none; cursor:pointer;
+    font-size:11px; font-weight:600; background:transparent; color:var(--text-muted);
+    transition:all 0.2s; font-family:inherit; text-align:center;
+  }
+  .stats-period-btn.active { background:var(--accent-bg-strong); color:var(--accent); }
+  .stats-period-btn:hover:not(.active) { color:var(--text-secondary); }
+  .stats-nav-row {
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+  }
+  .stats-nav-btn {
+    background:none; border:1px solid var(--border-light); color:var(--accent);
+    width:28px; height:28px; border-radius:8px; cursor:pointer; font-size:14px;
+    font-family:inherit; display:flex; align-items:center; justify-content:center; transition:all 0.15s;
+  }
+  .stats-nav-btn:hover { background:var(--accent-bg); }
+  .stats-nav-label { font-size:13px; font-weight:700; color:var(--text-primary); }
+  .stats-nav-today {
+    background:none; border:1px solid var(--border-light); color:var(--accent);
+    height:24px; border-radius:6px; cursor:pointer; font-size:10px; font-weight:600;
+    font-family:inherit; padding:0 8px; transition:all 0.15s; margin-left:6px;
+  }
+  .stats-nav-today:hover { background:var(--accent-bg); }
+
+  /* Session tag label */
+  .session-tag {
+    display:inline-block; padding:2px 6px; border-radius:4px; font-size:9px;
+    font-weight:700; margin-top:2px; letter-spacing:0.3px;
+  }
+
+  /* Session detail modal */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1500;
+    display:none; align-items:center; justify-content:center;
+    backdrop-filter:blur(4px); animation:fadeIn 0.15s ease-out;
+  }
+  .modal-overlay.show { display:flex; }
+  .modal {
+    background:var(--bg-card); border:1px solid var(--border-light); border-radius:18px;
+    width:90%; max-width:400px; padding:20px; position:relative;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6); animation:notifSlideIn 0.25s ease-out;
+  }
+  .modal-close {
+    position:absolute; top:12px; right:12px; width:28px; height:28px;
+    border-radius:8px; border:1px solid var(--border);
+    background:var(--bg-surface); color:var(--text-muted); cursor:pointer;
+    font-size:14px; display:flex; align-items:center; justify-content:center;
+    transition:all 0.15s; font-family:inherit;
+  }
+  .modal-close:hover { background:var(--red-bg); color:var(--red); }
+  .modal-title { font-size:16px; font-weight:800; margin-bottom:4px; color:var(--text-primary); }
+  .modal-subtitle { font-size:11px; color:var(--text-muted); margin-bottom:14px; }
+  .modal-field-label { font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:4px; }
+  .modal-textarea {
+    width:100%; min-height:120px; padding:10px 12px; border-radius:12px;
+    border:1px solid var(--border-light); background:var(--bg-surface);
+    color:var(--text-primary); font-size:13px; font-family:inherit; resize:vertical;
+    outline:none; transition:border-color 0.15s; line-height:1.5;
+  }
+  .modal-textarea:focus { border-color:var(--accent); }
+  .modal-textarea::placeholder { color:var(--text-muted); }
+  .modal-info-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .modal-info-chip {
+    padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600;
+    background:var(--bg-surface); border:1px solid var(--border); color:var(--text-secondary);
+  }
+  .modal-btn-row { display:flex; gap:8px; margin-top:12px; }
+  .modal-save-btn {
+    flex:1; padding:10px; border:none; border-radius:12px;
+    cursor:pointer; font-size:14px; font-weight:700; font-family:inherit; color:var(--bg-deep);
+    background:var(--accent); box-shadow:0 4px 16px rgba(217,142,72,0.25); transition:all 0.15s;
+  }
+  .modal-save-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  .modal-del-btn {
+    padding:10px 14px; border:1px solid rgba(201,85,58,0.3); border-radius:12px;
+    cursor:pointer; font-size:14px; font-weight:700; font-family:inherit;
+    color:var(--red); background:var(--red-bg); transition:all 0.15s;
+  }
+  .modal-del-btn:hover { background:rgba(201,85,58,0.2); }
+
+  /* Countdown on session block */
+  .session-countdown { font-size:8px; font-weight:700; color:var(--green); margin-top:1px; font-variant-numeric:tabular-nums; }
+
+  /* Session-end notification popup */
+  .notif-popup {
+    position:fixed; bottom:20px; right:20px; z-index:2000;
+    background:var(--bg-card); border:2px solid var(--border-accent);
+    border-radius:16px; padding:16px 20px; min-width:260px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.6), 0 0 20px rgba(217,142,72,0.15);
+    animation:notifSlideIn 0.4s ease-out; display:none; cursor:pointer;
+  }
+  .notif-popup.show { display:flex; flex-direction:column; gap:6px; }
+  .notif-popup-title { font-size:15px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px; }
+  .notif-popup-body { font-size:12px; color:var(--text-secondary); }
+  .notif-popup-dismiss { font-size:10px; color:var(--accent); font-weight:600; margin-top:4px; }
+
+  /* Break overlay */
+  .break-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1800;
+    display:none; align-items:center; justify-content:center;
+    backdrop-filter:blur(6px); animation:fadeIn 0.2s ease-out;
+  }
+  .break-overlay.show { display:flex; }
+  .break-card {
+    background:var(--bg-card); border:1px solid var(--border-light); border-radius:20px;
+    width:90%; max-width:340px; padding:24px; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6); animation:notifSlideIn 0.3s ease-out;
+  }
+  .break-title { font-size:18px; font-weight:800; color:var(--text-primary); margin-bottom:4px; }
+  .break-subtitle { font-size:12px; color:var(--text-secondary); margin-bottom:16px; }
+  .break-options { display:flex; gap:8px; margin-bottom:12px; }
+  .break-opt-btn {
+    flex:1; padding:10px 0; border-radius:12px; border:1px solid var(--border);
+    background:var(--bg-surface); cursor:pointer; font-family:inherit;
+    font-size:15px; font-weight:700; color:var(--text-secondary); transition:all 0.15s;
+  }
+  .break-opt-btn:hover { border-color:var(--border-accent); color:var(--accent); background:var(--accent-bg); }
+  .break-opt-btn span { display:block; font-size:10px; font-weight:600; color:var(--text-muted); margin-top:1px; }
+  .break-skip-btn {
+    background:none; border:none; cursor:pointer; font-family:inherit;
+    font-size:12px; font-weight:600; color:var(--text-muted); padding:6px 12px; transition:color 0.15s;
+  }
+  .break-skip-btn:hover { color:var(--text-secondary); }
+
+  /* Break active timer */
+  .break-timer-card {
+    background:var(--bg-card); border:1px solid var(--border-light); border-radius:20px;
+    width:90%; max-width:340px; padding:28px 24px; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6); animation:notifSlideIn 0.3s ease-out;
+  }
+  .break-timer-label { font-size:13px; font-weight:700; color:var(--text-secondary); margin-bottom:4px; }
+  .break-timer-display { font-size:48px; font-weight:900; color:var(--accent); font-variant-numeric:tabular-nums; margin:8px 0; }
+  .break-timer-sub { font-size:11px; color:var(--text-muted); margin-bottom:16px; }
+  .break-end-btn {
+    padding:10px 28px; border-radius:12px; border:none; cursor:pointer;
+    background:var(--accent); color:var(--bg-deep); font-size:14px; font-weight:700;
+    font-family:inherit; box-shadow:0 4px 16px rgba(217,142,72,0.25); transition:all 0.15s;
+  }
+  .break-end-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  @keyframes breakPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .break-pulse { animation:breakPulse 2s ease-in-out infinite; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--border-light); }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+
+    <!-- Logo -->
+    <div class="login-logo">
+      <div class="login-icon">Z</div>
+      <div>
+        <div class="login-title">Zone<span>In</span></div>
+        <div class="login-subtitle">Focus session calendar</div>
+      </div>
+    </div>
+
+    <!-- VIEW 1: Sign In / Sign Up -->
+    <div id="view-auth">
+      <div class="login-tabs">
+        <button class="login-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign In</button>
+        <button class="login-tab" id="tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+      </div>
+      <div class="login-field">
+        <label>Email</label>
+        <input class="login-input" id="auth-email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input class="login-input" id="auth-password" type="password" placeholder="••••••••">
+      </div>
+      <div class="login-field" id="confirm-field" style="display:none;">
+        <label>Confirm Password</label>
+        <input class="login-input" id="auth-confirm" type="password" placeholder="••••••••">
+      </div>
+      <div class="login-error" id="auth-error"></div>
+      <button class="login-button" id="auth-btn" onclick="submitAuth()">
+        <span id="auth-spinner"></span>
+        <span id="auth-btn-text">Sign In</span>
+      </button>
+      <button class="login-text-btn" id="forgot-link" onclick="showView('reset')">Forgot password?</button>
+    </div>
+
+    <!-- VIEW 2: Forgot Password -->
+    <div id="view-reset" style="display:none;">
+      <div class="login-view-title">Reset Password</div>
+      <div class="login-view-desc">Enter your email and we'll send you a reset link.</div>
+      <div class="login-field">
+        <label>Email</label>
+        <input class="login-input" id="reset-email" type="email" placeholder="you@example.com">
+      </div>
+      <div class="login-error" id="reset-error"></div>
+      <button class="login-button" id="reset-btn" onclick="submitReset()">
+        <span id="reset-spinner"></span>
+        <span id="reset-btn-text">Send Reset Link</span>
+      </button>
+      <button class="login-text-btn" onclick="showView('auth')">← Back to Sign In</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<div class="notif-popup" id="notif-popup" onclick="dismissNotif()">
+  <div class="notif-popup-title" id="notif-title">Session Complete!</div>
+  <div class="notif-popup-body" id="notif-body">Great work!</div>
+  <div class="notif-popup-dismiss">Click to dismiss</div>
+</div>
+
+<!-- Session detail modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-title" id="modal-title">Session Details</div>
+    <div class="modal-subtitle" id="modal-subtitle"></div>
+    <div class="modal-info-row" id="modal-info"></div>
+    <div class="modal-field-label">What did you work on?</div>
+    <textarea class="modal-textarea" id="modal-notes" placeholder="e.g. Solved 3 LeetCode mediums on trees, reviewed binary search patterns..."></textarea>
+    <div class="modal-btn-row">
+      <button class="modal-save-btn" onclick="saveSessionNotes()">Save Notes</button>
+      <button class="modal-del-btn" id="modal-del-btn" onclick="deleteSessionFromModal()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Break overlay -->
+<div class="break-overlay" id="break-overlay">
+  <div id="break-content"></div>
+</div>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">Z</div>
+      <div class="logo-text">Zone<span>In</span></div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; flex:1; justify-content:flex-end;">
+      <div class="nav-tabs">
+        <button class="nav-tab active" id="tab-calendar" onclick="switchTab('calendar')">Calendar</button>
+        <button class="nav-tab" id="tab-tags" onclick="switchTab('tags')">Tags</button>
+        <button class="nav-tab" id="tab-stats" onclick="switchTab('stats')">Stats</button>
+      </div>
+      <div class="user-section" id="user-section" style="display:none;">
+        <div class="user-avatar" id="user-avatar" onclick="toggleUserDropdown(event)">U</div>
+        <div class="user-dropdown" id="user-dropdown">
+          <div class="user-dropdown-header">
+            <div class="user-dropdown-email" id="user-dropdown-email">—</div>
+          </div>
+          <button class="user-dropdown-item" onclick="closeUserDropdown();logout()">
+            <span>🚪</span> Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div id="content" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+</div>
+
+<!-- Bottom bar -->
+<div class="bottom-bar" id="bottom-bar"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script>
+// ===== SUPABASE CONFIG =====
+const SUPABASE_URL = 'https://qhdwdstxawnuovqqnfwu.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_4gKQ92UZ4PApvbC0joCnaw_XNVHQh5-';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ===== AUTH STATE =====
+let currentUser = null;
+let authMode = 'signin'; // 'signin' | 'signup'
+
+function showView(view) {
+  document.getElementById('view-auth').style.display  = view === 'auth'  ? 'block' : 'none';
+  document.getElementById('view-reset').style.display = view === 'reset' ? 'block' : 'none';
+  if (view === 'auth') {
+    document.getElementById('auth-error').textContent = '';
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-confirm').value = '';
+  } else {
+    document.getElementById('reset-error').textContent = '';
+    document.getElementById('reset-email').value = '';
+  }
+}
+
+function switchAuthTab(mode) {
+  authMode = mode;
+  const isSignup = mode === 'signup';
+  document.getElementById('tab-signin').classList.toggle('active', !isSignup);
+  document.getElementById('tab-signup').classList.toggle('active', isSignup);
+  document.getElementById('auth-btn-text').textContent = isSignup ? 'Create Account' : 'Sign In';
+  document.getElementById('confirm-field').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('forgot-link').style.display  = isSignup ? 'none'  : 'block';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-confirm').value = '';
+}
+
+function setAuthLoading(loading) {
+  const btn     = document.getElementById('auth-btn');
+  const spinner = document.getElementById('auth-spinner');
+  const text    = document.getElementById('auth-btn-text');
+  btn.disabled  = loading;
+  spinner.innerHTML = loading ? '<span class="login-loading"></span>' : '';
+  if (!loading) text.textContent = authMode === 'signin' ? 'Sign In' : 'Create Account';
+}
+
+async function submitAuth() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const confirm  = document.getElementById('auth-confirm').value;
+  const errorEl  = document.getElementById('auth-error');
+  errorEl.style.color = 'var(--red)';
+  errorEl.textContent = '';
+
+  if (!email)    { errorEl.textContent = 'Please enter your email.'; return; }
+  if (!password) { errorEl.textContent = 'Please enter your password.'; return; }
+  if (authMode === 'signup') {
+    if (password.length < 6)     { errorEl.textContent = 'Password must be at least 6 characters.'; return; }
+    if (password !== confirm)    { errorEl.textContent = 'Passwords do not match.'; return; }
+  }
+
+  setAuthLoading(true);
+  try {
+    if (authMode === 'signin') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) errorEl.textContent = error.message;
+    } else {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        errorEl.textContent = error.message;
+      } else {
+        errorEl.style.color = 'var(--green)';
+        errorEl.textContent = '✓ Account created! Check your email to confirm, then sign in.';
+        setTimeout(() => switchAuthTab('signin'), 3500);
+      }
+    }
+  } catch (e) {
+    console.error('Auth error:', e);
+    errorEl.textContent = 'Something went wrong. Please try again.';
+  } finally {
+    setAuthLoading(false);
+  }
+}
+
+async function submitReset() {
+  const email   = document.getElementById('reset-email').value.trim();
+  const errorEl = document.getElementById('reset-error');
+  const btn     = document.getElementById('reset-btn');
+  const spinner = document.getElementById('reset-spinner');
+  const text    = document.getElementById('reset-btn-text');
+
+  errorEl.style.color = 'var(--red)';
+  errorEl.textContent = '';
+  if (!email) { errorEl.textContent = 'Please enter your email.'; return; }
+
+  btn.disabled = true;
+  spinner.innerHTML = '<span class="login-loading"></span>';
+  text.textContent = 'Sending…';
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if (error) {
+      errorEl.textContent = error.message;
+    } else {
+      errorEl.style.color = 'var(--green)';
+      errorEl.textContent = '✓ Reset link sent! Check your email.';
+    }
+  } catch (e) {
+    console.error('Reset error:', e);
+    errorEl.textContent = 'Something went wrong. Please try again.';
+  } finally {
+    btn.disabled = false;
+    spinner.innerHTML = '';
+    text.textContent = 'Send Reset Link';
+  }
+}
+
+async function initializeAuth() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      showApp();
+      await loadFromSupabase();
+    } else {
+      showLoginScreen();
+    }
+  } catch (e) {
+    console.error('Auth init error:', e);
+    showLoginScreen();
+  }
+}
+
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    showLoginScreen();
+  }
+  // SIGNED_IN / TOKEN_REFRESHED on page reload — only act if no user loaded yet
+  if (session && !currentUser) {
+    currentUser = session.user;
+    showApp();
+    await loadFromSupabase();
+  }
+});
+
+function showLoginScreen() {
+  try {
+    const loginScreen = document.getElementById('login-screen');
+    loginScreen.classList.remove('hidden');
+    loginScreen.style.display = 'flex';
+    document.querySelector('.app').style.display = 'none';
+    document.getElementById('bottom-bar').style.display = 'none';
+    document.getElementById('user-section').style.display = 'none';
+    // Reset auth form state
+    document.getElementById('view-auth').style.display = 'block';
+    document.getElementById('view-reset').style.display = 'none';
+    document.getElementById('tab-signin').classList.add('active');
+    document.getElementById('tab-signup').classList.remove('active');
+    document.getElementById('auth-btn-text').textContent = 'Sign In';
+    document.getElementById('confirm-field').style.display = 'none';
+    document.getElementById('forgot-link').style.display = 'block';
+    document.getElementById('auth-error').textContent = '';
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+  } catch(e) {
+    console.error('showLoginScreen error:', e);
+  }
+}
+
+function showApp() {
+  const loginScreen = document.getElementById('login-screen');
+  loginScreen.classList.add('hidden');
+  loginScreen.style.display = 'none';
+  document.querySelector('.app').style.display = 'flex';
+  document.getElementById('bottom-bar').style.display = 'flex';
+  document.getElementById('user-section').style.display = 'flex';
+  updateUserAvatar();
+  render();
+}
+
+function updateUserAvatar() {
+  if (currentUser) {
+    const initial = (currentUser.email || 'U').charAt(0).toUpperCase();
+    document.getElementById('user-avatar').textContent = initial;
+    document.getElementById('user-dropdown-email').textContent = currentUser.email || '';
+  }
+}
+
+// ===== USER DROPDOWN =====
+function toggleUserDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+function closeUserDropdown() {
+  document.getElementById('user-dropdown').classList.remove('open');
+}
+document.addEventListener('click', () => closeUserDropdown());
+
+async function logout() {
+  try {
+    currentUser = null;
+    await supabase.auth.signOut();
+    // onAuthStateChange SIGNED_OUT will call showLoginScreen()
+  } catch (e) {
+    console.error('Logout error:', e);
+    // Fallback: force show login screen manually
+    showLoginScreen();
+  }
+}
+
+
+// ===== NOTIFICATION & CHIME SYSTEM =====
+let notifTimer = null;
+
+function requestNotifPermission() {
+  if("Notification" in window && Notification.permission==="default") {
+    Notification.requestPermission();
+  }
+}
+document.addEventListener("click", requestNotifPermission, { once:true });
+
+function playEndChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + i*0.15);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i*0.15 + 0.05);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i*0.15 + 0.5);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i*0.15);
+      osc.stop(ctx.currentTime + i*0.15 + 0.6);
+    });
+  } catch(e) {}
+}
+
+function playStartChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [392.00, 523.25];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + i*0.2);
+      gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + i*0.2 + 0.06);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i*0.2 + 0.6);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i*0.2);
+      osc.stop(ctx.currentTime + i*0.2 + 0.7);
+    });
+  } catch(e) {}
+}
+
+function showNotifPopup(title, body, browserNotif) {
+  const popup = document.getElementById("notif-popup");
+  document.getElementById("notif-title").textContent = title;
+  document.getElementById("notif-body").textContent = body;
+  popup.classList.add("show");
+  if(notifTimer) clearTimeout(notifTimer);
+  notifTimer = setTimeout(()=> popup.classList.remove("show"), 6000);
+
+  if(browserNotif && "Notification" in window && Notification.permission==="granted") {
+    try {
+      new Notification("ZoneIn - " + title, {
+        body,
+        icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23d98e48'/><text x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-size='18' font-weight='900' fill='white'>Z</text></svg>",
+        requireInteraction: false,
+        tag: "zonein-notif"
+      });
+    } catch(e) {}
+  }
+}
+
+function notifySessionStart(s) {
+  playStartChime();
+  const sTag = s.tag ? state.tags.find(t=>t.id===s.tag) : null;
+  const tagLabel = sTag ? sTag.name + " — " : "";
+  showNotifPopup("Focus Started!", tagLabel + s.duration + " minutes. Let's go!", false);
+}
+
+function notifySessionEnd() {
+  playEndChime();
+  showNotifPopup("Session Complete!", "Great work! Your focus session is over.", true);
+}
+
+function dismissNotif() {
+  document.getElementById("notif-popup").classList.remove("show");
+  if(notifTimer) { clearTimeout(notifTimer); notifTimer=null; }
+}
+
+const TAG_COLORS = ["#6366f1","#8b5cf6","#ec4899","#f97316","#eab308","#22c55e","#06b6d4","#ef4444"];
+
+let state = {
+  sessions:[],
+  focusSettings:{ duration:50, task:"desk", tag:null },
+  tags:[],
+  calOffset:0,
+  selectedSlot:null,
+  confirmingCancel:null,
+  view:"calendar",
+  newTagColor:"#6366f1",
+  statsPeriod:"weekly",
+  statsPeriodOffset:0,
+};
+
+// ===== SUPABASE DATA LOADING =====
+async function loadFromSupabase() {
+  if (!currentUser) return;
+
+  try {
+    // Load sessions
+    const { data: sessionsData, error: sessionsError } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('user_id', currentUser.id);
+
+    if (sessionsError) throw sessionsError;
+    state.sessions = sessionsData || [];
+
+    // Load tags
+    const { data: tagsData, error: tagsError } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('user_id', currentUser.id);
+
+    if (tagsError) throw tagsError;
+    state.tags = tagsData || [];
+
+    // Load settings
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (!settingsError && settingsData) {
+      state.focusSettings = {
+        duration: settingsData.duration || 50,
+        task: settingsData.task || "desk",
+        tag: settingsData.tag || null
+      };
+    }
+
+    updateSessionStatuses();
+    restoreActiveTimers();
+    render();
+  } catch (e) {
+    console.error('Load error:', e);
+    showToast('Error loading data');
+  }
+}
+
+// ===== SUPABASE DATA OPERATIONS =====
+async function saveSession(session) {
+  if (!currentUser) return;
+
+  try {
+    const sessionData = {
+      ...session,
+      user_id: currentUser.id
+    };
+
+    if (session.id && session.id.length > 0) {
+      // Upsert existing session
+      const { error } = await supabase
+        .from('sessions')
+        .upsert(sessionData, { onConflict: 'id' });
+
+      if (error) throw error;
+    } else {
+      // Insert new session - generate UUID-like ID
+      sessionData.id = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+      const { error } = await supabase
+        .from('sessions')
+        .insert([sessionData]);
+
+      if (error) throw error;
+      session.id = sessionData.id;
+    }
+  } catch (e) {
+    console.error('Save session error:', e);
+    showToast('Error saving session');
+  }
+}
+
+async function deleteSession(id) {
+  if (!currentUser) return;
+
+  try {
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', currentUser.id);
+
+    if (error) throw error;
+  } catch (e) {
+    console.error('Delete session error:', e);
+    showToast('Error deleting session');
+  }
+}
+
+async function saveTag(tag) {
+  if (!currentUser) return;
+
+  try {
+    const tagData = { ...tag, user_id: currentUser.id };
+    const { error } = await supabase
+      .from('tags')
+      .upsert(tagData, { onConflict: 'id' });
+
+    if (error) throw error;
+  } catch (e) {
+    console.error('Save tag error:', e);
+    showToast('Error saving tag');
+  }
+}
+
+async function deleteTagFromDB(id) {
+  if (!currentUser) return;
+
+  try {
+    const { error } = await supabase
+      .from('tags')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', currentUser.id);
+
+    if (error) throw error;
+  } catch (e) {
+    console.error('Delete tag error:', e);
+    showToast('Error deleting tag');
+  }
+}
+
+async function saveSettings() {
+  if (!currentUser) return;
+
+  try {
+    const { error } = await supabase
+      .from('settings')
+      .upsert({
+        user_id: currentUser.id,
+        duration: state.focusSettings.duration,
+        task: state.focusSettings.task,
+        tag: state.focusSettings.tag
+      }, { onConflict: 'user_id' });
+
+    if (error) throw error;
+  } catch (e) {
+    console.error('Save settings error:', e);
+    showToast('Error saving settings');
+  }
+}
+
+function getDateKey(d) {
+  d = d || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function getHourLabel(h) {
+  if(h===0) return "12AM"; if(h<12) return h+"AM"; if(h===12) return "12PM"; return (h-12)+"PM";
+}
+function getTimeLabel(h, m) {
+  const ampm = h>=12?"pm":"am";
+  const hr = h===0?12:(h>12?h-12:h);
+  return `${hr}:${String(m).padStart(2,"0")}${ampm}`;
+}
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"), 2500);
+}
+function sessionEndDate(s) {
+  if(s.started_at) return new Date(s.started_at + s.duration * 60000);
+  const parts = s.date.split("-");
+  const start = new Date(+parts[0], +parts[1]-1, +parts[2], s.start_hour, s.start_min, 0);
+  return new Date(start.getTime() + s.duration * 60000);
+}
+
+function getCalDays() {
+  const days = [], base = new Date();
+  base.setDate(base.getDate() + state.calOffset * 3);
+  for(let i=0;i<3;i++) { const d=new Date(base); d.setDate(d.getDate()+i); days.push(d); }
+  return days;
+}
+function getSessionsForSlotAt(date, hour, min) {
+  return state.sessions.filter(s => {
+    if(s.date!==date||s.status==="cancelled") return false;
+    const sS=s.start_hour*60+s.start_min, sE=sS+s.duration, t=hour*60+min;
+    return t>=sS && t<sE;
+  });
+}
+function isSlotCovered(date, hour, min) {
+  return state.sessions.some(s => {
+    if(s.date!==date||s.status==="cancelled") return false;
+    const sS=s.start_hour*60+s.start_min, sE=sS+s.duration, t=hour*60+min;
+    return t>sS && t<sE;
+  });
+}
+function isSlotPast(dk, h, m) {
+  const now=new Date(), today=getDateKey(now);
+  if(dk<today) return true;
+  if(dk===today && (h*60+(m||0)) < (now.getHours()*60+now.getMinutes())) return true;
+  return false;
+}
+
+async function bookSession(date, hour, min) {
+  const newSession = {
+    id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    date, start_hour:hour, start_min:min,
+    duration:state.focusSettings.duration,
+    task:state.focusSettings.task, tag:state.focusSettings.tag, status:"booked",
+    notes: null, started_at: null
+  };
+  state.sessions.push(newSession);
+  state.selectedSlot=null;
+  await saveSession(newSession);
+  render();
+  showToast(`${state.focusSettings.duration}min session booked!`);
+}
+
+let sessionTimers = {};
+async function startSession(id) {
+  const s=state.sessions.find(x=>x.id===id);
+  if(s) {
+    s.status="active"; s.started_at=Date.now();
+    await saveSession(s);
+    render();
+    notifySessionStart(s);
+    const msLeft = sessionEndDate(s).getTime() - Date.now();
+    if(msLeft > 0) {
+      if(sessionTimers[id]) clearTimeout(sessionTimers[id]);
+      sessionTimers[id] = setTimeout(()=> {
+        const sess = state.sessions.find(x=>x.id===id);
+        if(sess && sess.status==="active") completeSession(id, true);
+        delete sessionTimers[id];
+      }, msLeft);
+    }
+  }
+}
+async function completeSession(id, autoCompleted) {
+  const s=state.sessions.find(x=>x.id===id);
+  if(s&&(s.status==="active"||s.status==="booked")) {
+    s.status="completed";
+    if(sessionTimers[id]) { clearTimeout(sessionTimers[id]); delete sessionTimers[id]; }
+    await saveSession(s);
+    render();
+    showToast("Session completed! Great work!");
+    notifySessionEnd();
+    setTimeout(showBreakPrompt, 1500);
+  }
+}
+
+// ===== BREAK SYSTEM =====
+let breakTimer = null;
+let breakInterval = null;
+let breakEndTime = null;
+
+function showBreakPrompt() {
+  const el = document.getElementById("break-overlay");
+  document.getElementById("break-content").innerHTML = `
+    <div class="break-card">
+      <div class="break-title">Take a Break?</div>
+      <div class="break-subtitle">You've earned it. Rest helps you focus better.</div>
+      <div class="break-options">
+        <button class="break-opt-btn" onclick="startBreak(5)">5<span>min</span></button>
+        <button class="break-opt-btn" onclick="startBreak(10)">10<span>min</span></button>
+        <button class="break-opt-btn" onclick="startBreak(15)">15<span>min</span></button>
+      </div>
+      <button class="break-skip-btn" onclick="dismissBreak()">Skip, I'm good</button>
+    </div>
+  `;
+  el.classList.add("show");
+}
+
+function startBreak(mins) {
+  breakEndTime = Date.now() + mins * 60000;
+  document.getElementById("break-content").innerHTML = `
+    <div class="break-timer-card">
+      <div class="break-timer-label break-pulse">On Break</div>
+      <div class="break-timer-display" id="break-display">${mins}:00</div>
+      <div class="break-timer-sub">Relax, stretch, hydrate</div>
+      <button class="break-end-btn" onclick="endBreak(false)">End Break</button>
+    </div>
+  `;
+  updateBreakTimer();
+  breakInterval = setInterval(updateBreakTimer, 1000);
+  breakTimer = setTimeout(()=> {
+    endBreak(true);
+  }, mins * 60000);
+}
+
+function updateBreakTimer() {
+  const msLeft = breakEndTime - Date.now();
+  if(msLeft <= 0) return;
+  const totalSec = Math.ceil(msLeft / 1000);
+  const mins = Math.floor(totalSec / 60);
+  const secs = totalSec % 60;
+  const el = document.getElementById("break-display");
+  if(el) el.textContent = `${mins}:${String(secs).padStart(2,"0")}`;
+}
+
+function endBreak(auto) {
+  if(breakTimer) { clearTimeout(breakTimer); breakTimer = null; }
+  if(breakInterval) { clearInterval(breakInterval); breakInterval = null; }
+  breakEndTime = null;
+  document.getElementById("break-overlay").classList.remove("show");
+  document.title = "ZoneIn - Focus Session Calendar";
+  if(auto) {
+    playStartChime();
+    showNotifPopup("Break Over!", "Ready to get back to work?", true);
+  } else {
+    showToast("Break ended. Let's go!");
+  }
+}
+
+function dismissBreak() {
+  document.getElementById("break-overlay").classList.remove("show");
+}
+
+async function cancelSession(id) {
+  state.sessions=state.sessions.filter(x=>x.id!==id);
+  await deleteSession(id);
+  state.confirmingCancel=null;
+  render();
+  showToast("Session cancelled");
+}
+function showCancelConfirm(id) { state.confirmingCancel=id; state.selectedSlot=null; render(); }
+function keepSession() { state.confirmingCancel=null; render(); }
+function selectSlot(date, hour, min) {
+  state.confirmingCancel=null;
+  if(state.selectedSlot && state.selectedSlot.date===date && state.selectedSlot.hour===hour && state.selectedSlot.min===min)
+    state.selectedSlot=null;
+  else state.selectedSlot={date,hour,min};
+  render();
+}
+function switchTab(tab) {
+  state.view=tab;
+  document.querySelectorAll(".nav-tab").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+tab).classList.add("active");
+  render();
+}
+
+// ===== SESSION DETAIL MODAL =====
+let modalSessionId = null;
+
+function openSessionModal(id) {
+  const s = state.sessions.find(x=>x.id===id);
+  if(!s) return;
+  modalSessionId = id;
+
+  const sTag = s.tag ? state.tags.find(t=>t.id===s.tag) : null;
+  const statusLabel = s.status==="active" ? "In Progress" : s.status==="completed" ? "Completed" : s.status==="booked" ? "Booked" : s.status;
+
+  document.getElementById("modal-title").textContent = "Session Details";
+  document.getElementById("modal-subtitle").textContent = `${s.date} at ${getTimeLabel(s.start_hour, s.start_min)}`;
+
+  document.getElementById("modal-info").innerHTML = `
+    <span class="modal-info-chip">${s.duration} min</span>
+    <span class="modal-info-chip">${statusLabel}</span>
+    ${sTag ? `<span class="modal-info-chip" style="border-color:${sTag.color}40;color:${sTag.color}">${sTag.name}</span>` : ""}
+  `;
+
+  document.getElementById("modal-notes").value = s.notes || "";
+  document.getElementById("modal-overlay").classList.add("show");
+  setTimeout(()=>document.getElementById("modal-notes").focus(), 100);
+}
+
+function closeModal(e) {
+  if(e && e.target && e.target.id !== "modal-overlay") return;
+  document.getElementById("modal-overlay").classList.remove("show");
+  modalSessionId = null;
+}
+
+async function saveSessionNotes() {
+  if(!modalSessionId) return;
+  const s = state.sessions.find(x=>x.id===modalSessionId);
+  if(!s) return;
+  s.notes = document.getElementById("modal-notes").value.trim();
+  await saveSession(s);
+  render();
+  document.getElementById("modal-overlay").classList.remove("show");
+  modalSessionId = null;
+  showToast("Notes saved!");
+}
+
+async function deleteSessionFromModal() {
+  if(!modalSessionId) return;
+  const id = modalSessionId;
+  state.sessions = state.sessions.filter(x=>x.id!==id);
+  if(sessionTimers[id]) { clearTimeout(sessionTimers[id]); delete sessionTimers[id]; }
+  await deleteSession(id);
+  render();
+  document.getElementById("modal-overlay").classList.remove("show");
+  modalSessionId = null;
+  showToast("Session removed");
+}
+
+// ===== COUNTDOWN SYSTEM =====
+function getSessionRemaining(s) {
+  if(s.status!=="active") return null;
+  const msLeft = sessionEndDate(s).getTime() - Date.now();
+  if(msLeft<=0) return null;
+  const totalSec = Math.ceil(msLeft/1000);
+  const mins = Math.floor(totalSec/60);
+  const secs = totalSec%60;
+  return { mins, secs, text:`${mins}:${String(secs).padStart(2,"0")}` };
+}
+
+function updateCountdowns() {
+  const activeSessions = state.sessions.filter(s=>s.status==="active");
+
+  if(activeSessions.length>0) {
+    const s = activeSessions[0];
+    const rem = getSessionRemaining(s);
+    if(rem) {
+      const sTag = s.tag ? state.tags.find(t=>t.id===s.tag) : null;
+      document.title = `${rem.text} ${sTag?sTag.name:"Focus"} - ZoneIn`;
+    } else {
+      document.title = "ZoneIn - Focus Session Calendar";
+    }
+  } else if(breakEndTime) {
+    const bLeft = breakEndTime - Date.now();
+    if(bLeft > 0) {
+      const bSec = Math.ceil(bLeft/1000);
+      const bM = Math.floor(bSec/60), bS = bSec%60;
+      document.title = `${bM}:${String(bS).padStart(2,"0")} Break - ZoneIn`;
+    }
+  } else {
+    document.title = "ZoneIn - Focus Session Calendar";
+  }
+
+  document.querySelectorAll("[data-countdown-id]").forEach(el=>{
+    const sid = el.getAttribute("data-countdown-id");
+    const s = state.sessions.find(x=>x.id===sid);
+    if(s) {
+      const rem = getSessionRemaining(s);
+      el.textContent = rem ? rem.text + " left" : "Done!";
+    }
+  });
+}
+
+function updateSessionStatuses() {
+  const now=new Date(), today=getDateKey(now), nowM=now.getHours()*60+now.getMinutes();
+  let changed=false;
+  state.sessions.forEach(s=>{
+    if(s.status==="booked") {
+      const end=s.start_hour*60+s.start_min+s.duration;
+      if(s.date<today||(s.date===today&&nowM>=end)) { s.status="cancelled"; changed=true; }
+    }
+  });
+  if(changed) {
+    state.sessions.forEach(s => {
+      if(s.status === "cancelled") saveSession(s);
+    });
+    render();
+  }
+}
+
+// ========== RENDER ==========
+function render() {
+  const content = document.getElementById("content");
+  const bottomBar = document.getElementById("bottom-bar");
+  const now = new Date();
+  const today = getDateKey();
+  const currentHour = now.getHours();
+
+  if(state.view==="calendar") {
+    const calDays = getCalDays();
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const startH=0, endH=23, rowHeight=9;
+    const timeSlots=[];
+    for(let h=startH;h<=endH;h++) for(let m=0;m<60;m+=5) timeSlots.push({hour:h,min:m});
+
+    const nowMin=now.getMinutes(), nowTotal=currentHour*60+nowMin, startTotal=startH*60;
+    const nowOffset=((nowTotal-startTotal)/5)*rowHeight;
+    const showNowLine=calDays.some(d=>getDateKey(d)===today)&&currentHour>=startH&&currentHour<=endH;
+
+    const rangeStart=calDays[0], rangeEnd=calDays[2];
+    const rangeLabel = rangeStart.getMonth()===rangeEnd.getMonth()
+      ? `${monthNames[rangeStart.getMonth()]} ${rangeStart.getFullYear()}`
+      : `${monthNames[rangeStart.getMonth()]} — ${monthNames[rangeEnd.getMonth()]} ${rangeEnd.getFullYear()}`;
+
+    content.innerHTML = `
+      <div class="cal-card">
+        <div class="cal-header">
+          <div class="cal-title">${rangeLabel}</div>
+          <div class="cal-nav-group">
+            <button class="cal-nav" onclick="state.calOffset--;render()">‹</button>
+            <button class="cal-today-btn" onclick="state.calOffset=0;render()">Today</button>
+            <button class="cal-nav" onclick="state.calOffset++;render()">›</button>
+          </div>
+        </div>
+        <div class="cal-day-headers">
+          <div></div>
+          ${calDays.map(d=>{
+            const dk=getDateKey(d), isT=dk===today;
+            return `<div class="cal-day-hdr ${isT?"today-hdr":""}">
+              ${isT?"Today":dayNames[d.getDay()]} ${d.getDate()}
+            </div>`;
+          }).join("")}
+        </div>
+        <div class="cal-scroll" id="cal-scroll">
+          ${showNowLine?`
+            <div class="now-time-label" style="top:${nowOffset-5}px">${getTimeLabel(currentHour,nowMin)}</div>
+            <div class="now-dot" style="top:${nowOffset}px"></div>
+            <div class="now-line" style="top:${nowOffset}px"></div>
+          `:""}
+          ${timeSlots.map(slot=>{
+            const h=slot.hour, m=slot.min, isHour=m===0;
+            const is15 = m%15===0;
+            const tLabel = isHour ? getHourLabel(h) : (is15 ? `:${String(m).padStart(2,"0")}` : "");
+            return `<div class="cal-time-row ${isHour?"hour-row":(is15?"quarter-row":"")}">
+              <div class="cal-time-label ${isHour?"hour-label":""}">${tLabel}</div>
+              ${calDays.map(d=>{
+                const dk=getDateKey(d), past=isSlotPast(dk,h,m);
+                const sessions=getSessionsForSlotAt(dk,h,m), hasS=sessions.length>0;
+                const isSel=state.selectedSlot&&state.selectedSlot.date===dk&&state.selectedSlot.hour===h&&state.selectedSlot.min===m;
+                let sc="";
+
+                if(isSel&&!hasS) {
+                  const popH=Math.round((state.focusSettings.duration/5)*rowHeight)-2;
+                  sc=`<div class="slot-popup" style="height:${popH}px" onclick="event.stopPropagation()">
+                    <button class="slot-popup-btn book" onclick="event.stopPropagation();bookSession('${dk}',${h},${m})">Book ${state.focusSettings.duration}min</button>
+                    <button class="slot-popup-btn clear" onclick="event.stopPropagation();state.selectedSlot=null;render()">Clear</button>
+                  </div>`;
+                } else if(hasS) {
+                  sessions.forEach(s=>{
+                    if(s.start_hour===h&&s.start_min===m) {
+                      const bH=Math.round((s.duration/5)*rowHeight)-2;
+                      const showCancel=state.confirmingCancel===s.id;
+
+                      if(showCancel) {
+                        sc+=`<div class="cancel-popup" style="height:${bH}px" onclick="event.stopPropagation()">
+                          <button class="cancel-popup-btn keep" onclick="event.stopPropagation();keepSession()">Keep</button>
+                          <button class="cancel-popup-btn cancel-confirm" onclick="event.stopPropagation();cancelSession('${s.id}')">Cancel</button>
+                        </div>`;
+                      } else {
+                        const sTag = s.tag ? state.tags.find(t=>t.id===s.tag) : null;
+                        const countdownInit = s.status==="active" ? (()=>{const r=getSessionRemaining(s);return r?r.text+" left":"In Progress"})() : "";
+                        sc+=`<div class="session-block ${s.status}" style="height:${bH}px;display:flex;flex-direction:column;justify-content:space-between" onclick="event.stopPropagation();openSessionModal('${s.id}')">
+                          <div>
+                            <div style="display:flex;align-items:center;justify-content:space-between">
+                              <div style="font-size:10px;font-weight:700">${getTimeLabel(s.start_hour,s.start_min)}</div>
+                              <div style="font-size:8px;opacity:0.6;margin-right:${s.status==="completed"?"2":"44"}px">${s.duration}min</div>
+                            </div>
+                            ${sTag?`<div class="session-tag" style="background:${sTag.color}33;color:${sTag.color}">${sTag.name}</div>`:""}
+                          </div>
+                          <div>
+                            ${s.status==="active"?`<div class="session-countdown" data-countdown-id="${s.id}">${countdownInit}</div>`:""}
+                            ${s.status==="completed"?'<div style="font-size:8px;color:var(--text-secondary)">✓ Done</div>':""}
+                            ${s.notes?'<div style="font-size:7px;color:var(--accent);opacity:0.7">✎ notes</div>':""}
+                          </div>
+                          ${s.status==="booked"||s.status==="active"?`
+                            <div class="session-actions">
+                              ${s.status==="booked"?`<button class="session-action-btn" onclick="event.stopPropagation();startSession('${s.id}')">▶</button>`:""}
+                              ${s.status==="active"?`<button class="session-action-btn" onclick="event.stopPropagation();completeSession('${s.id}')">✓</button>`:""}
+                              <button class="session-action-btn x-btn" onclick="event.stopPropagation();showCancelConfirm('${s.id}')">✕</button>
+                            </div>
+                          `:""}
+                        </div>`;
+                      }
+                    }
+                  });
+                }
+                const covered=isSlotCovered(dk,h,m);
+                return `<div class="cal-slot ${past?"past-slot":""}"
+                  style="${covered&&!hasS?"pointer-events:none;":""}"
+                  ${!past&&!hasS&&!isSel&&!covered?`onclick="selectSlot('${dk}',${h},${m})"`:""}>
+                  ${sc}
+                </div>`;
+              }).join("")}
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`;
+
+    bottomBar.style.display="flex";
+    const selTag = state.focusSettings.tag ? state.tags.find(t=>t.id===state.focusSettings.tag) : null;
+    bottomBar.innerHTML = `
+      <div class="duration-row">
+        <span class="dur-label">Duration</span>
+        ${[25,50,75].map(d=>`
+          <button class="dur-btn ${state.focusSettings.duration===d?"active":""}"
+            onclick="state.focusSettings.duration=${d};saveSettings();render()">
+            ${d}<span>min</span>
+          </button>
+        `).join("")}
+      </div>
+      ${state.tags.length>0?`
+        <div class="tag-row">
+          <span class="dur-label">Tag</span>
+          <button class="tag-sel-btn ${!state.focusSettings.tag?"active":""}" onclick="state.focusSettings.tag=null;saveSettings();render()">None</button>
+          ${state.tags.map(t=>`
+            <button class="tag-sel-btn ${state.focusSettings.tag===t.id?"active":""}" onclick="state.focusSettings.tag='${t.id}';saveSettings();render()">
+              <span class="tag-sel-dot" style="background:${t.color}"></span>${t.name}
+            </button>
+          `).join("")}
+        </div>
+      `:""}
+      <button class="book-bar-btn" ${state.selectedSlot?"":"disabled"}
+        onclick="${state.selectedSlot?`bookSession('${state.selectedSlot.date}',${state.selectedSlot.hour},${state.selectedSlot.min})`:""}">
+        <span class="bolt">⚡</span>
+        ${state.selectedSlot
+          ? `Book ${state.focusSettings.duration}min${selTag?" — "+selTag.name:""} — ${getTimeLabel(state.selectedSlot.hour,state.selectedSlot.min)}`
+          : "Select a time slot to book"}
+      </button>
+    `;
+
+    if(showNowLine) {
+      const se=document.getElementById("cal-scroll");
+      if(se) se.scrollTop=Math.max(0,nowOffset-100);
+    }
+
+  } else if(state.view==="tags") {
+    bottomBar.style.display="none";
+    renderTags(content);
+  } else if(state.view==="stats") {
+    bottomBar.style.display="none";
+    renderStats(content);
+  }
+}
+
+function renderTags(container) {
+  const completed = state.sessions.filter(s=>s.status==="completed");
+
+  container.innerHTML = `
+    <div class="tags-page">
+      <div class="tags-section">
+        <div class="tags-section-title">Create New Tag</div>
+        <div class="add-tag-row">
+          <input class="add-tag-input" id="new-tag-input" type="text" placeholder="Tag name..." maxlength="20"
+            onkeydown="if(event.key==='Enter')addTag()">
+          <button class="add-tag-btn" onclick="addTag()">Add</button>
+        </div>
+        <div class="color-picker-row">
+          ${TAG_COLORS.map(c=>`
+            <div class="color-dot ${state.newTagColor===c?"active":""}" style="background:${c}"
+              onclick="state.newTagColor='${c}';render()"></div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="tags-section">
+        <div class="tags-section-title">Your Tags (${state.tags.length})</div>
+        ${state.tags.length>0 ? `<div class="tag-list">
+          ${state.tags.map(t=>{
+            const count = completed.filter(s=>s.tag===t.id).length;
+            return `<div class="tag-item">
+              <div class="tag-item-color" style="background:${t.color}"></div>
+              <div class="tag-item-name">${t.name}</div>
+              <div class="tag-item-count">${count} session${count!==1?"s":""}</div>
+              <button class="tag-item-del" onclick="event.stopPropagation();deleteTag('${t.id}')")>✕</button>
+            </div>`;
+          }).join("")}
+        </div>` : '<div class="tags-empty">No tags yet. Create one above!</div>'}
+      </div>
+    </div>
+  `;
+  setTimeout(()=>{const inp=document.getElementById("new-tag-input");if(inp)inp.focus();},50);
+}
+
+async function addTag() {
+  const inp = document.getElementById("new-tag-input");
+  if(!inp) return;
+  const name = inp.value.trim();
+  if(!name) return;
+  if(state.tags.some(t=>t.name.toLowerCase()===name.toLowerCase())) { showToast("Tag already exists"); return; }
+  const id = name.toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,12) + Date.now().toString(36).slice(-4);
+  const newTag = { id, name, color:state.newTagColor };
+  state.tags.push(newTag);
+  await saveTag(newTag);
+  render();
+  showToast(`Tag "${name}" added!`);
+}
+
+async function deleteTag(id) {
+  state.tags = state.tags.filter(t=>t.id!==id);
+  if(state.focusSettings.tag===id) { state.focusSettings.tag=null; await saveSettings(); }
+  await deleteTagFromDB(id);
+  render();
+}
+
+function setStatsPeriod(p) { state.statsPeriod=p; state.statsPeriodOffset=0; render(); }
+function shiftStatsPeriod(dir) { state.statsPeriodOffset+=dir; render(); }
+
+function getStatsDateRange(period) {
+  const now=new Date(), off=state.statsPeriodOffset||0;
+  const dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  if(period==="daily") {
+    const d=new Date(now); d.setDate(d.getDate()+off);
+    const dk=getDateKey(d);
+    const label=dayNames[d.getDay()]+", "+monthNames[d.getMonth()]+" "+d.getDate();
+    return { start:dk, end:dk, label, isCurrent:off===0 };
+  } else if(period==="weekly") {
+    const base=new Date(now); base.setDate(now.getDate()-now.getDay()+off*7);
+    const s=new Date(base);
+    const e=new Date(s); e.setDate(s.getDate()+6);
+    const isCurrent=off===0;
+    const label=monthNames[s.getMonth()]+" "+s.getDate()+" – "+monthNames[e.getMonth()]+" "+e.getDate();
+    return { start:getDateKey(s), end:getDateKey(e), label, isCurrent };
+  } else if(period==="monthly") {
+    const target=new Date(now.getFullYear(), now.getMonth()+off, 1);
+    const s=target;
+    const e=new Date(target.getFullYear(), target.getMonth()+1, 0);
+    const isCurrent=off===0;
+    const label=monthNames[s.getMonth()]+" "+s.getFullYear();
+    return { start:getDateKey(s), end:getDateKey(e), label, isCurrent };
+  } else if(period==="yearly") {
+    const yr=now.getFullYear()+off;
+    const s=new Date(yr, 0, 1);
+    const e=new Date(yr, 11, 31);
+    const isCurrent=off===0;
+    return { start:getDateKey(s), end:getDateKey(e), label:String(yr), isCurrent };
+  }
+  return { start:null, end:null, label:"All Time", isCurrent:true };
+}
+
+function buildTagStats(completed, totalMinutes, tags) {
+  if(!tags || tags.length===0) return "";
+  let rows = tags.map(t=>{
+    const tc=completed.filter(s=>s.tag===t.id);
+    const tCount=tc.length, tMins=tc.reduce((a,s)=>a+s.duration,0);
+    const tHrs=(tMins/60).toFixed(1);
+    const barW=totalMinutes>0?Math.max(4,Math.round((tMins/totalMinutes)*100)):0;
+    return '<div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="width:8px;height:8px;border-radius:50%;background:'+t.color+';flex-shrink:0"></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">'
+      +'<div style="font-size:11px;font-weight:600;color:var(--text-primary)">'+t.name+'</div>'
+      +'<div style="font-size:10px;color:var(--text-muted)">'+tCount+' session'+(tCount!==1?'s':'')+' · '+(tMins>=60?tHrs+'h':tMins+'m')+'</div>'
+      +'</div>'
+      +'<div style="height:4px;border-radius:2px;background:var(--bg-surface);overflow:hidden">'
+      +'<div style="height:100%;width:'+barW+'%;border-radius:2px;background:'+t.color+';transition:width 0.3s"></div>'
+      +'</div></div></div>';
+  }).join("");
+  const untagged=completed.filter(s=>!s.tag);
+  if(untagged.length>0) {
+    const uMins=untagged.reduce((a,s)=>a+s.duration,0);
+    const uHrs=(uMins/60).toFixed(1);
+    const barW=totalMinutes>0?Math.max(4,Math.round((uMins/totalMinutes)*100)):0;
+    rows+='<div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0"></div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">'
+      +'<div style="font-size:11px;font-weight:600;color:var(--text-primary)">Untagged</div>'
+      +'<div style="font-size:10px;color:var(--text-muted)">'+untagged.length+' session'+(untagged.length!==1?'s':'')+' · '+(uMins>=60?uHrs+'h':uMins+'m')+'</div>'
+      +'</div>'
+      +'<div style="height:4px;border-radius:2px;background:var(--bg-surface);overflow:hidden">'
+      +'<div style="height:100%;width:'+barW+'%;border-radius:2px;background:var(--text-muted);transition:width 0.3s"></div>'
+      +'</div></div></div>';
+  }
+  return '<div class="stat-card wide"><div style="font-size:12px;font-weight:700;margin-bottom:8px">By Tag</div><div style="display:flex;flex-direction:column;gap:6px">'+rows+'</div></div>';
+}
+
+function renderStats(container) {
+  const now=new Date(), today=getDateKey();
+  const period=state.statsPeriod||"weekly";
+  const range=getStatsDateRange(period);
+
+  const allCompleted=state.sessions.filter(s=>s.status==="completed");
+  const completed=range.start ? allCompleted.filter(s=>s.date>=range.start&&s.date<=range.end) : allCompleted;
+
+  const totalSessions=completed.length;
+  const totalMinutes=completed.reduce((a,s)=>a+s.duration,0);
+  const totalHours=(totalMinutes/60).toFixed(1);
+  const avgDuration=totalSessions>0?Math.round(totalMinutes/totalSessions):0;
+
+  let streak=0, d=new Date();
+  while(true) {
+    const k=getDateKey(d);
+    if(state.sessions.some(s=>s.date===k&&s.status==="completed")) { streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+
+  const dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  let chartData=[], chartLabel="", maxVal=1;
+
+  if(period==="daily") {
+    chartLabel=range.label;
+    const dayKey=range.start;
+    for(let h=0;h<=23;h++) {
+      const mins=completed.filter(s=>{
+        return s.date===dayKey && s.start_hour>=h && s.start_hour<h+1;
+      }).reduce((a,s)=>a+s.duration,0);
+      const isNow=range.isCurrent&&h===now.getHours();
+      chartData.push({ label:h>12?(h-12)+"p":(h===0?"12a":(h===12?"12p":h+"a")), value:mins, isNow });
+    }
+    maxVal=Math.max(...chartData.map(c=>c.value),1);
+  } else if(period==="weekly") {
+    chartLabel=range.label;
+    const rStart=range.start.split("-"); const weekBase=new Date(+rStart[0],+rStart[1]-1,+rStart[2]);
+    for(let i=0;i<7;i++) {
+      const wd=new Date(weekBase); wd.setDate(weekBase.getDate()+i);
+      const dk=getDateKey(wd);
+      const mins=completed.filter(s=>s.date===dk).reduce((a,s)=>a+s.duration,0);
+      chartData.push({ label:dayNames[wd.getDay()], value:mins, isNow:dk===today });
+    }
+    maxVal=Math.max(...chartData.map(c=>c.value),1);
+  } else if(period==="monthly") {
+    chartLabel=range.label;
+    const rStart=range.start.split("-"); const rEnd=range.end.split("-");
+    const firstDay=new Date(+rStart[0],+rStart[1]-1,+rStart[2]);
+    const lastDay=new Date(+rEnd[0],+rEnd[1]-1,+rEnd[2]);
+    let weekStart=new Date(firstDay);
+    let wk=1;
+    while(weekStart<=lastDay) {
+      const wEnd=new Date(weekStart); wEnd.setDate(weekStart.getDate()+6);
+      const wEndClamped=wEnd>lastDay?lastDay:wEnd;
+      const ws=getDateKey(weekStart), we=getDateKey(wEndClamped);
+      const mins=completed.filter(s=>s.date>=ws&&s.date<=we).reduce((a,s)=>a+s.duration,0);
+      const isNow=today>=ws&&today<=we;
+      chartData.push({ label:"W"+wk, value:mins, isNow });
+      weekStart.setDate(weekStart.getDate()+7); wk++;
+    }
+    maxVal=Math.max(...chartData.map(c=>c.value),1);
+  } else if(period==="yearly") {
+    chartLabel=range.label;
+    const yr=parseInt(range.start.slice(0,4));
+    for(let m=0;m<12;m++) {
+      const ms=getDateKey(new Date(yr,m,1));
+      const me=getDateKey(new Date(yr,m+1,0));
+      const mins=completed.filter(s=>s.date>=ms&&s.date<=me).reduce((a,s)=>a+s.duration,0);
+      const isNow=range.isCurrent&&m===now.getMonth();
+      chartData.push({ label:monthNames[m].slice(0,3), value:mins, isNow });
+    }
+    maxVal=Math.max(...chartData.map(c=>c.value),1);
+  } else {
+    chartLabel="All Time";
+    const dates=allCompleted.map(s=>s.date).sort();
+    if(dates.length>0) {
+      const firstYear=parseInt(dates[0].slice(0,4)), lastYear=now.getFullYear();
+      for(let y=firstYear;y<=lastYear;y++) {
+        const ys=y+"-01-01", ye=y+"-12-31";
+        const mins=allCompleted.filter(s=>s.date>=ys&&s.date<=ye).reduce((a,s)=>a+s.duration,0);
+        chartData.push({ label:String(y), value:mins, isNow:y===now.getFullYear() });
+      }
+    }
+    maxVal=Math.max(...chartData.map(c=>c.value),1);
+  }
+
+  const streakDays=[];
+  for(let i=6;i>=0;i--) {
+    const sd=new Date(); sd.setDate(sd.getDate()-i);
+    const dk=getDateKey(sd);
+    const done=state.sessions.some(s=>s.date===dk&&s.status==="completed");
+    streakDays.push({ dk, done, isToday:dk===today, day:dayNames[sd.getDay()] });
+  }
+
+  const dur25=completed.filter(s=>s.duration===25).length;
+  const dur50=completed.filter(s=>s.duration===50).length;
+  const dur75=completed.filter(s=>s.duration===75).length;
+
+  const dayCounts={};
+  completed.forEach(s=>{ dayCounts[s.date]=(dayCounts[s.date]||0)+1; });
+  const bestDay=Object.entries(dayCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  const periods=[["daily","Daily"],["weekly","Weekly"],["monthly","Monthly"],["yearly","Yearly"],["lifetime","Lifetime"]];
+
+  container.innerHTML = `
+    <div class="stats-page">
+      <div style="font-size:16px;font-weight:800;margin-bottom:10px">Your Focus Stats</div>
+
+      <div class="stats-period-row">
+        ${periods.map(([k,lbl])=>`
+          <button class="stats-period-btn ${period===k?"active":""}" onclick="setStatsPeriod('${k}')">${lbl}</button>
+        `).join("")}
+      </div>
+
+      ${period!=="lifetime"?`
+      <div class="stats-nav-row">
+        <button class="stats-nav-btn" onclick="shiftStatsPeriod(-1)">‹</button>
+        <div style="display:flex;align-items:center">
+          <span class="stats-nav-label">${range.label}</span>
+          ${!range.isCurrent?'<button class="stats-nav-today" onclick="state.statsPeriodOffset=0;render()">Today</button>':""}
+        </div>
+        <button class="stats-nav-btn" onclick="shiftStatsPeriod(1)">›</button>
+      </div>
+      `:""}
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">${totalSessions}</div>
+          <div class="stat-label">Sessions</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${totalHours}h</div>
+          <div class="stat-label">Focus Time</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${streak}</div>
+          <div class="stat-label">Day Streak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${avgDuration}m</div>
+          <div class="stat-label">Avg Session</div>
+        </div>
+      </div>
+
+      ${buildTagStats(completed, totalMinutes, state.tags)}
+
+      <div class="stat-card wide">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px">Last 7 Days</div>
+        <div class="streak-bar">
+          ${streakDays.map(sd=>`
+            <div class="streak-day ${sd.done?"done":"empty"} ${sd.isToday?"today":""}">
+              <div>
+                <div style="font-size:11px">${sd.done?"✓":""}</div>
+                <div>${sd.day}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="stat-card wide">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px">Activity</div>
+        <div class="weekly-chart" style="${chartData.length>12?"overflow-x:auto;":""}">
+          ${chartData.map(w=>`
+            <div class="weekly-bar-col" style="${chartData.length>12?"min-width:28px":""}">
+              <div class="weekly-bar-val">${w.value>0?(w.value>=60?Math.round(w.value/60)+"h":w.value+"m"):""}</div>
+              <div class="weekly-bar" style="height:${w.value>0?(w.value/maxVal)*45:2}px;${w.isNow?"background:linear-gradient(180deg,var(--accent-light),var(--accent))":""}"></div>
+              <div class="weekly-bar-label" style="${w.isNow?"color:var(--accent);font-weight:700":""}">${w.label}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="stat-card wide">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">Session Breakdown</div>
+        <div style="display:flex;gap:8px">
+          ${[[25,dur25,"#d98e48"],[50,dur50,"#5cb87a"],[75,dur75,"#e8a962"]].map(([d,c,col])=>`
+            <div style="flex:1;text-align:center;padding:8px;border-radius:8px;background:var(--bg-surface);border:1px solid var(--border)">
+              <div style="font-size:20px;font-weight:800;color:${col}">${c}</div>
+              <div style="font-size:10px;color:var(--text-secondary)">${d} min</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      ${bestDay?`
+        <div class="stat-card wide" style="text-align:center">
+          <div style="font-size:12px;font-weight:700">Best Day</div>
+          <div style="font-size:20px;font-weight:800;margin-top:4px">${bestDay[1]} sessions</div>
+          <div style="font-size:11px;color:var(--text-secondary)">${bestDay[0]}</div>
+        </div>
+      `:`
+        <div class="stat-card wide" style="text-align:center;color:var(--text-muted)">
+          <div style="font-size:13px">${period==="lifetime"?"Complete your first session to see stats!":"No sessions in this period yet"}</div>
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function restoreActiveTimers() {
+  state.sessions.forEach(s => {
+    if(s.status === "active") {
+      const msLeft = sessionEndDate(s).getTime() - Date.now();
+      if(msLeft > 0) {
+        sessionTimers[s.id] = setTimeout(()=> {
+          const sess = state.sessions.find(x=>x.id===s.id);
+          if(sess && sess.status==="active") completeSession(s.id, true);
+          delete sessionTimers[s.id];
+        }, msLeft);
+      }
+    }
+  });
+}
+
+// Init
+initializeAuth();
+setInterval(()=>{ updateSessionStatuses(); render(); }, 60000);
+setInterval(updateCountdowns, 1000);
+</script>
+</body>
+</html>
