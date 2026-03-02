@@ -48,11 +48,12 @@ Your job is to parse a natural language scheduling request and return a JSON obj
 
 User context:
 - Current datetime: {current_datetime}
+- Current date (YYYY-MM-DD): {current_date}
 - Day of week: {day_of_week}
 - Default session duration (minutes): {default_duration}
 - Default break between sessions (minutes): {default_break}
 - User's tags: {tags}
-- Already booked today: {booked_today}
+- Already booked on target date: {booked_today}
 
 Rules:
 - "morning" = 9am, "afternoon" = 1pm, "evening" = 6pm, "night" = 8pm
@@ -62,16 +63,23 @@ Rules:
 - "deep work" or "long" = 90 minutes
 - If no duration mentioned, use default_duration
 - If no break mentioned, use default_break
-- If no start time mentioned, use "next_free" (means find next free slot after now)
+- If no start time mentioned and date is today, use "next_free" (set start_hour=-1, start_min=-1)
+- If no start time mentioned and date is NOT today, default to 9am (start_hour=9, start_min=0)
 - If total_minutes is given (e.g. "2 hours"), calculate how many full sessions fit with breaks
 - Match tag names case-insensitively to the user's tags list. Use the tag id, not the name.
 - If tag not found in user's tags, set tag to null
 - sessions = number of sessions to book
 - start_hour and start_min are 24h format integers (e.g. 14 for 2pm, 0 for midnight)
-- If start is "next_free", set start_hour to -1 and start_min to -1
+- For the "date" field: use YYYY-MM-DD format
+  - "today" → current_date
+  - "tomorrow" → current_date + 1 day
+  - "next Monday" → calculate the actual date
+  - A specific date like "March 3rd" → resolve to YYYY-MM-DD based on current_date year
+  - If no date mentioned → use current_date
 
 Return ONLY valid JSON, no explanation:
 {{
+  "date": <YYYY-MM-DD string>,
   "sessions": <number>,
   "duration": <minutes per session>,
   "break": <minutes between sessions>,
@@ -83,11 +91,13 @@ Return ONLY valid JSON, no explanation:
 }}
 
 Examples:
-- "leetcode for 2 hrs" → sessions fit within 120 total minutes using default duration + break
-- "3 pomodoros of coding" → 3 sessions of 25 min
-- "block my morning for deep work" → start 9am, 90min sessions, fill morning
-- "quick admin session now" → 1 session, 25min, start now
-- "2 sessions 50min leetcode 10min break" → explicit values
+- "leetcode for 2 hrs" → today, sessions fit within 120 total minutes
+- "3 pomodoros of coding" → today, 3 sessions of 25 min
+- "block my morning for deep work" → today, start 9am, 90min sessions
+- "quick admin session now" → today, 1 session, 25min, start now
+- "study leetcode tomorrow morning for 2 hrs" → tomorrow, start 9am, sessions within 120 min
+- "leetcode on march 3rd for 2 hrs in morning" → 2026-03-03, start 9am, sessions within 120 min
+- "2 sessions 50min leetcode 10min break" → today, explicit values
 """
 
 schedule_prompt = ChatPromptTemplate.from_messages([
@@ -133,23 +143,28 @@ def round_up_to_5(hour, minute):
     return hour, minute
 
 
-def find_next_free_slot(booked_sessions, default_duration, tz=None):
-    """Find the next free slot after now."""
-    now_h, now_m = get_current_time(tz)
-    now_h, now_m = round_up_to_5(now_h, now_m)
-
+def find_next_free_slot(booked_sessions, default_duration, tz=None, target_date=None):
+    """Find the next free slot after now (today) or from 9am (future date)."""
     today = get_today_str(tz)
+    is_today = (target_date is None or target_date == today)
 
-    # Convert booked sessions to occupied minute ranges
+    if is_today:
+        start_h, start_m = get_current_time(tz)
+        start_h, start_m = round_up_to_5(start_h, start_m)
+    else:
+        start_h, start_m = 9, 0  # future dates start from 9am
+
+    # Convert booked sessions to occupied minute ranges for target date
+    date_key = target_date or today
     occupied = []
     for s in booked_sessions:
-        if s.get("date") == today and s.get("status") != "completed":
+        if s.get("date") == date_key and s.get("status") != "completed":
             start = s["start_hour"] * 60 + s["start_min"]
             end = start + s["duration"]
             occupied.append((start, end))
 
     # Find first free slot
-    candidate = now_h * 60 + now_m
+    candidate = start_h * 60 + start_m
     while candidate + default_duration <= 24 * 60:
         c_end = candidate + default_duration
         conflict = any(start < c_end and candidate < end for start, end in occupied)
@@ -157,7 +172,7 @@ def find_next_free_slot(booked_sessions, default_duration, tz=None):
             return candidate // 60, candidate % 60
         candidate += 5
 
-    # Fallback: next morning 9am
+    # Fallback: 9am
     return 9, 0
 
 
@@ -179,6 +194,13 @@ def calculate_sessions_from_total(total_minutes, duration, break_mins):
 def build_sessions(user_id, parsed, booked_today, default_duration, tz=None):
     """Build session objects to insert into Supabase."""
     today = get_today_str(tz)
+    # Use date from LLM if valid, otherwise fall back to today
+    target_date = parsed.get("date") or today
+    try:
+        datetime.strptime(target_date, "%Y-%m-%d")
+    except Exception:
+        target_date = today
+
     sessions_to_book = []
 
     start_hour = parsed.get("start_hour", -1)
@@ -196,7 +218,7 @@ def build_sessions(user_id, parsed, booked_today, default_duration, tz=None):
 
     # Resolve next_free slot
     if start_hour == -1 or start_min == -1:
-        start_hour, start_min = find_next_free_slot(booked_today, duration, tz)
+        start_hour, start_min = find_next_free_slot(booked_today, duration, tz, target_date=target_date)
 
     current_h = start_hour
     current_m = start_min
@@ -206,7 +228,7 @@ def build_sessions(user_id, parsed, booked_today, default_duration, tz=None):
         sessions_to_book.append({
             "id": session_id,
             "user_id": user_id,
-            "date": today,
+            "date": target_date,
             "start_hour": current_h,
             "start_min": current_m,
             "duration": duration,
@@ -272,8 +294,11 @@ def schedule():
     tags = tags_res.data or []
     tags_for_prompt = [{"id": t["id"], "name": t["name"]} for t in tags]
 
-    # Today's booked sessions (use user's local date)
+    # Today's date in user timezone
     today = get_today_str(user_tz)
+    now = datetime.now(user_tz)
+
+    # Pre-fetch today's sessions for the prompt (we don't know target date yet)
     sessions_res = (
         supabase.table("sessions")
         .select("*")
@@ -281,18 +306,18 @@ def schedule():
         .eq("date", today)
         .execute()
     )
-    booked_today = sessions_res.data or []
+    booked_today_sessions = sessions_res.data or []
     booked_summary = [
         f"{s['start_hour']}:{str(s['start_min']).zfill(2)} ({s['duration']}min)"
-        for s in booked_today
+        for s in booked_today_sessions
         if s.get("status") != "completed"
     ]
 
     # 4. Call Gemini via LangChain
-    now = datetime.now(user_tz)
     try:
         parsed = schedule_chain.invoke({
             "current_datetime": now.strftime("%Y-%m-%d %H:%M"),
+            "current_date": today,
             "day_of_week": now.strftime("%A"),
             "default_duration": default_duration,
             "default_break": default_break,
@@ -309,12 +334,26 @@ def schedule():
         parsed["tag_id"] = None
         parsed["tag_name"] = None
 
+    # Fetch booked sessions for the target date the LLM resolved
+    target_date = parsed.get("date") or today
+    if target_date != today:
+        target_sessions_res = (
+            supabase.table("sessions")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("date", target_date)
+            .execute()
+        )
+        booked_target = target_sessions_res.data or []
+    else:
+        booked_target = booked_today_sessions
+
     # 6. Build sessions
     try:
         sessions_to_book = build_sessions(
             user_id=user_id,
             parsed=parsed,
-            booked_today=booked_today,
+            booked_today=booked_target,
             default_duration=default_duration,
             tz=user_tz,
         )
@@ -342,7 +381,7 @@ def schedule():
         "success": True,
         "sessions_booked": num,
         "sessions": sessions_to_book,
-        "summary": f"Booked {num} × {duration}min session{'s' if num > 1 else ''} starting {start_label} [{tag_name}]",
+        "summary": f"Booked {num} × {duration}min session{'s' if num > 1 else ''} on {first['date']} at {start_label} [{tag_name}]",
         "reasoning": reasoning,
     })
 
