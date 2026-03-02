@@ -979,16 +979,10 @@ async function initializeAuth() {
   }
 }
 
-supabase.auth.onAuthStateChange(async (event, session) => {
+supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     currentUser = null;
     showLoginScreen();
-  }
-  // SIGNED_IN / TOKEN_REFRESHED on page reload — only act if no user loaded yet
-  if (session && !currentUser) {
-    currentUser = session.user;
-    showApp();
-    await loadFromSupabase();
   }
 });
 
