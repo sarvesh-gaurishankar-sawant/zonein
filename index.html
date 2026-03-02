@@ -362,8 +362,9 @@
     cursor:pointer; transition:background 0.15s; position:relative; overflow-x:clip; overflow-y:visible; padding:0;
   }
   .cal-slot:hover { background:var(--accent-bg); }
-  .cal-slot.past-slot { opacity:0.35; cursor:default; }
+  .cal-slot.past-slot { opacity:0.3; cursor:default; }
   .cal-slot.past-slot:hover { background:transparent; }
+  .session-block { opacity:1 !important; cursor:pointer !important; }
 
   /* Session blocks */
   .session-block {
@@ -1736,7 +1737,7 @@ function render() {
                   });
                 }
                 const covered=isSlotCovered(dk,h,m);
-                return `<div class="cal-slot ${past?"past-slot":""}"
+                return `<div class="cal-slot ${past&&!hasS?"past-slot":""}"
                   style="${covered&&!hasS?"pointer-events:none;":""}"
                   ${!past&&!hasS&&!isSel&&!covered?`onclick="selectSlot('${dk}',${h},${m})"`:""}>
                   ${sc}
