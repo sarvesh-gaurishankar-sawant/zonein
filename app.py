@@ -65,10 +65,8 @@ Rules:
 - If no break mentioned, use default_break
 - If no start time mentioned and date is today, use "next_free" (set start_hour=-1, start_min=-1)
 - If no start time mentioned and date is NOT today, default to 9am (start_hour=9, start_min=0)
-- If total_minutes is given (e.g. "2 hours"), calculate how many full sessions fit with breaks
 - Match tag names case-insensitively to the user's tags list. Use the tag id, not the name.
 - If tag not found in user's tags, set tag to null
-- sessions = number of sessions to book
 - start_hour and start_min are 24h format integers (e.g. 14 for 2pm, 0 for midnight)
 - For the "date" field: use YYYY-MM-DD format
   - "today" → current_date
@@ -77,10 +75,17 @@ Rules:
   - A specific date like "March 3rd" → resolve to YYYY-MM-DD based on current_date year
   - If no date mentioned → use current_date
 
+IMPORTANT - Session count rules:
+- If the user mentions a TOTAL time (e.g. "2 hours", "3 hrs", "90 minutes"), set total_minutes to that value and set sessions to -1. The server will calculate how many sessions fit.
+- If the user mentions an EXPLICIT session count (e.g. "3 pomodoros", "2 sessions"), set sessions to that number and total_minutes to -1.
+- If neither, set sessions to 1 and total_minutes to -1.
+- NEVER try to calculate session count yourself when total_minutes is given.
+
 Return ONLY valid JSON, no explanation:
 {{
   "date": <YYYY-MM-DD string>,
-  "sessions": <number>,
+  "sessions": <number or -1 if total_minutes is set>,
+  "total_minutes": <total time in minutes, or -1 if explicit sessions given>,
   "duration": <minutes per session>,
   "break": <minutes between sessions>,
   "tag_id": <tag id string or null>,
@@ -91,13 +96,13 @@ Return ONLY valid JSON, no explanation:
 }}
 
 Examples:
-- "leetcode for 2 hrs" → today, sessions fit within 120 total minutes
-- "3 pomodoros of coding" → today, 3 sessions of 25 min
-- "block my morning for deep work" → today, start 9am, 90min sessions
-- "quick admin session now" → today, 1 session, 25min, start now
-- "study leetcode tomorrow morning for 2 hrs" → tomorrow, start 9am, sessions within 120 min
-- "leetcode on march 3rd for 2 hrs in morning" → 2026-03-03, start 9am, sessions within 120 min
-- "2 sessions 50min leetcode 10min break" → today, explicit values
+- "leetcode for 2 hrs" → total_minutes=120, sessions=-1, duration=default_duration
+- "leetcode for 4 hrs" → total_minutes=240, sessions=-1, duration=default_duration
+- "3 pomodoros of coding" → sessions=3, total_minutes=-1, duration=25
+- "block my morning for deep work" → total_minutes=240 (9am-1pm), sessions=-1, duration=90
+- "quick admin session now" → sessions=1, total_minutes=-1, duration=25
+- "study leetcode tomorrow morning for 2 hrs" → tomorrow, start 9am, total_minutes=120, sessions=-1
+- "2 sessions 50min leetcode 10min break" → sessions=2, total_minutes=-1, duration=50, break=10
 """
 
 schedule_prompt = ChatPromptTemplate.from_messages([
@@ -208,12 +213,13 @@ def build_sessions(user_id, parsed, booked_today, default_duration, tz=None):
     duration = parsed.get("duration", default_duration)
     break_mins = parsed.get("break", 10)
     num_sessions = parsed.get("sessions", 1)
+    total_minutes = parsed.get("total_minutes", -1)
 
-    # If LLM returned 0 or missing sessions, recalculate from total_minutes if available
-    total_minutes = parsed.get("total_minutes")
-    if (not num_sessions or num_sessions < 1) and total_minutes:
-        num_sessions = calculate_sessions_from_total(total_minutes, duration, break_mins)
-    num_sessions = max(1, int(num_sessions))
+    # Always use server-side calculation when total_minutes is provided
+    if total_minutes and int(total_minutes) > 0:
+        num_sessions = calculate_sessions_from_total(int(total_minutes), duration, break_mins)
+    else:
+        num_sessions = max(1, int(num_sessions)) if num_sessions and int(num_sessions) > 0 else 1
     tag_id = parsed.get("tag_id")
 
     # Resolve next_free slot
