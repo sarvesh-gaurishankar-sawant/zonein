@@ -626,51 +626,92 @@
   .notif-popup-body { font-size:12px; color:var(--text-secondary); }
   .notif-popup-dismiss { font-size:10px; color:var(--accent); font-weight:600; margin-top:4px; }
 
-  /* Break overlay */
+  /* Break overlay — full screen zen */
+  @keyframes breakFadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes breakSlideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes breatheRing { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.18);opacity:0.15} }
+  @keyframes breathePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+  @keyframes breakPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
   .break-overlay {
-    position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1800;
-    display:none; align-items:center; justify-content:center;
-    backdrop-filter:blur(6px); animation:fadeIn 0.2s ease-out;
+    position:fixed; inset:0; z-index:1800;
+    background:var(--bg-deep);
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    animation:breakFadeIn 0.4s ease-out;
   }
   .break-overlay.show { display:flex; }
-  .break-card {
-    background:var(--bg-card); border:1px solid var(--border-light); border-radius:20px;
-    width:90%; max-width:340px; padding:24px; text-align:center;
-    box-shadow:0 20px 60px rgba(0,0,0,0.6); animation:notifSlideIn 0.3s ease-out;
+
+  /* Prompt screen */
+  .break-prompt {
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    animation:breakSlideUp 0.4s ease-out;
+    padding: 24px;
   }
-  .break-title { font-size:18px; font-weight:800; color:var(--text-primary); margin-bottom:4px; }
-  .break-subtitle { font-size:12px; color:var(--text-secondary); margin-bottom:16px; }
-  .break-options { display:flex; gap:8px; margin-bottom:12px; }
+  .break-prompt-emoji { font-size:52px; margin-bottom:20px; }
+  .break-prompt-title { font-size:28px; font-weight:900; color:var(--text-primary); margin-bottom:8px; }
+  .break-prompt-sub { font-size:14px; color:var(--text-secondary); margin-bottom:36px; max-width:280px; line-height:1.6; }
+  .break-prompt-options { display:flex; gap:12px; margin-bottom:24px; }
   .break-opt-btn {
-    flex:1; padding:10px 0; border-radius:12px; border:1px solid var(--border);
-    background:var(--bg-surface); cursor:pointer; font-family:inherit;
-    font-size:15px; font-weight:700; color:var(--text-secondary); transition:all 0.15s;
+    width:90px; height:90px; border-radius:20px;
+    border:1px solid var(--border-light);
+    background:var(--bg-card); cursor:pointer; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transition:all 0.2s; gap:2px;
   }
-  .break-opt-btn:hover { border-color:var(--border-accent); color:var(--accent); background:var(--accent-bg); }
-  .break-opt-btn span { display:block; font-size:10px; font-weight:600; color:var(--text-muted); margin-top:1px; }
+  .break-opt-btn:hover { border-color:var(--accent); background:var(--accent-bg); transform:translateY(-2px); box-shadow:0 8px 24px rgba(217,142,72,0.15); }
+  .break-opt-num { font-size:26px; font-weight:900; color:var(--accent); }
+  .break-opt-label { font-size:10px; font-weight:600; color:var(--text-muted); }
   .break-skip-btn {
     background:none; border:none; cursor:pointer; font-family:inherit;
-    font-size:12px; font-weight:600; color:var(--text-muted); padding:6px 12px; transition:color 0.15s;
+    font-size:13px; font-weight:600; color:var(--text-muted); padding:8px 16px;
+    transition:color 0.15s; border-radius:8px;
   }
   .break-skip-btn:hover { color:var(--text-secondary); }
 
-  /* Break active timer */
-  .break-timer-card {
-    background:var(--bg-card); border:1px solid var(--border-light); border-radius:20px;
-    width:90%; max-width:340px; padding:28px 24px; text-align:center;
-    box-shadow:0 20px 60px rgba(0,0,0,0.6); animation:notifSlideIn 0.3s ease-out;
+  /* Active timer screen */
+  .break-timer-screen {
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    animation:breakSlideUp 0.4s ease-out; padding:24px; width:100%;
   }
-  .break-timer-label { font-size:13px; font-weight:700; color:var(--text-secondary); margin-bottom:4px; }
-  .break-timer-display { font-size:48px; font-weight:900; color:var(--accent); font-variant-numeric:tabular-nums; margin:8px 0; }
-  .break-timer-sub { font-size:11px; color:var(--text-muted); margin-bottom:16px; }
+  .break-ring-wrap {
+    position:relative; width:200px; height:200px;
+    display:flex; align-items:center; justify-content:center; margin-bottom:32px;
+  }
+  .break-ring {
+    position:absolute; inset:0; border-radius:50%;
+    border:2px solid var(--accent);
+    animation:breatheRing 4s ease-in-out infinite;
+  }
+  .break-ring-inner {
+    position:absolute; inset:20px; border-radius:50%;
+    background:var(--accent-bg);
+    animation:breathePulse 4s ease-in-out infinite;
+  }
+  .break-timer-display {
+    position:relative; z-index:1;
+    font-size:52px; font-weight:900; color:var(--text-primary);
+    font-variant-numeric:tabular-nums; letter-spacing:-1px;
+  }
+  .break-timer-status {
+    font-size:13px; font-weight:700; color:var(--accent); letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:8px;
+    animation:breakPulse 3s ease-in-out infinite;
+  }
+  .break-timer-hint { font-size:13px; color:var(--text-muted); margin-bottom:36px; }
+  .break-progress-track {
+    width:260px; height:3px; background:var(--bg-surface);
+    border-radius:2px; overflow:hidden; margin-bottom:36px;
+  }
+  .break-progress-bar {
+    height:100%; background:var(--accent); border-radius:2px;
+    transition:width 1s linear;
+  }
   .break-end-btn {
-    padding:10px 28px; border-radius:12px; border:none; cursor:pointer;
-    background:var(--accent); color:var(--bg-deep); font-size:14px; font-weight:700;
-    font-family:inherit; box-shadow:0 4px 16px rgba(217,142,72,0.25); transition:all 0.15s;
+    padding:12px 36px; border-radius:14px; border:1px solid var(--border-light); cursor:pointer;
+    background:var(--bg-card); color:var(--text-secondary); font-size:14px; font-weight:700;
+    font-family:inherit; transition:all 0.15s;
   }
-  .break-end-btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
-  @keyframes breakPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-  .break-pulse { animation:breakPulse 2s ease-in-out infinite; }
+  .break-end-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width:6px; }
@@ -1370,38 +1411,56 @@ let breakTimer = null;
 let breakInterval = null;
 let breakEndTime = null;
 
+let breakTotalMs = 0;
+
 function showBreakPrompt() {
-  const el = document.getElementById("break-overlay");
   document.getElementById("break-content").innerHTML = `
-    <div class="break-card">
-      <div class="break-title">Take a Break?</div>
-      <div class="break-subtitle">You've earned it. Rest helps you focus better.</div>
-      <div class="break-options">
-        <button class="break-opt-btn" onclick="startBreak(5)">5<span>min</span></button>
-        <button class="break-opt-btn" onclick="startBreak(10)">10<span>min</span></button>
-        <button class="break-opt-btn" onclick="startBreak(15)">15<span>min</span></button>
+    <div class="break-prompt">
+      <div class="break-prompt-emoji">☕</div>
+      <div class="break-prompt-title">Session Complete!</div>
+      <div class="break-prompt-sub">You crushed it. Take a moment to rest — your brain will thank you.</div>
+      <div class="break-prompt-options">
+        <button class="break-opt-btn" onclick="startBreak(5)">
+          <span class="break-opt-num">5</span>
+          <span class="break-opt-label">minutes</span>
+        </button>
+        <button class="break-opt-btn" onclick="startBreak(10)">
+          <span class="break-opt-num">10</span>
+          <span class="break-opt-label">minutes</span>
+        </button>
+        <button class="break-opt-btn" onclick="startBreak(15)">
+          <span class="break-opt-num">15</span>
+          <span class="break-opt-label">minutes</span>
+        </button>
       </div>
-      <button class="break-skip-btn" onclick="dismissBreak()">Skip, I'm good</button>
+      <button class="break-skip-btn" onclick="dismissBreak()">Skip, keep going →</button>
     </div>
   `;
-  el.classList.add("show");
+  document.getElementById("break-overlay").classList.add("show");
 }
 
 function startBreak(mins) {
-  breakEndTime = Date.now() + mins * 60000;
+  breakTotalMs = mins * 60000;
+  breakEndTime = Date.now() + breakTotalMs;
+
   document.getElementById("break-content").innerHTML = `
-    <div class="break-timer-card">
-      <div class="break-timer-label break-pulse">On Break</div>
-      <div class="break-timer-display" id="break-display">${mins}:00</div>
-      <div class="break-timer-sub">Relax, stretch, hydrate</div>
-      <button class="break-end-btn" onclick="endBreak(false)">End Break</button>
+    <div class="break-timer-screen">
+      <div class="break-timer-status">On Break</div>
+      <div class="break-ring-wrap">
+        <div class="break-ring"></div>
+        <div class="break-ring-inner"></div>
+        <div class="break-timer-display" id="break-display">${mins}:00</div>
+      </div>
+      <div class="break-timer-hint">Breathe. Stretch. Hydrate. 🌿</div>
+      <div class="break-progress-track">
+        <div class="break-progress-bar" id="break-progress" style="width:100%"></div>
+      </div>
+      <button class="break-end-btn" onclick="endBreak(false)">End Break Early</button>
     </div>
   `;
   updateBreakTimer();
   breakInterval = setInterval(updateBreakTimer, 1000);
-  breakTimer = setTimeout(()=> {
-    endBreak(true);
-  }, mins * 60000);
+  breakTimer = setTimeout(() => endBreak(true), breakTotalMs);
 }
 
 function updateBreakTimer() {
@@ -1410,8 +1469,10 @@ function updateBreakTimer() {
   const totalSec = Math.ceil(msLeft / 1000);
   const mins = Math.floor(totalSec / 60);
   const secs = totalSec % 60;
-  const el = document.getElementById("break-display");
-  if(el) el.textContent = `${mins}:${String(secs).padStart(2,"0")}`;
+  const display = document.getElementById("break-display");
+  const progress = document.getElementById("break-progress");
+  if(display) display.textContent = `${mins}:${String(secs).padStart(2,"0")}`;
+  if(progress) progress.style.width = `${(msLeft / breakTotalMs) * 100}%`;
 }
 
 function endBreak(auto) {
