@@ -385,6 +385,11 @@
   .cal-slot:hover { background:var(--accent-bg); }
   .cal-slot.past-slot { opacity:0.3; cursor:default; }
   .cal-slot.past-slot:hover { background:transparent; }
+  .hover-duration-preview {
+    position:fixed;
+    background:var(--accent-bg); border:1px solid var(--accent);
+    opacity:0.5; pointer-events:none; z-index:999; border-radius:2px;
+  }
   .session-block { opacity:1 !important; cursor:pointer !important; }
 
   /* Session blocks */
@@ -455,6 +460,7 @@
     padding:8px 12px; margin:0 auto; max-width:700px; width:100%;
     display:flex; flex-direction:column; gap:6px;
     background:var(--bg-card); border-top:1px solid var(--border);
+    margin-top:8px;
     flex-shrink:0;
   }
   .duration-row { display:flex; gap:6px; align-items:center; }
@@ -1910,6 +1916,21 @@ function selectSlot(date, hour, min) {
   else state.selectedSlot={date,hour,min};
   render();
 }
+function showHoverPreview(el) {
+  const rh = isMobile() ? 14 : 9;
+  const h = Math.round((state.focusSettings.duration / 5) * rh) - 2;
+  const rect = el.getBoundingClientRect();
+  const preview = document.createElement("div");
+  preview.className = "hover-duration-preview";
+  preview.style.top = rect.top + "px";
+  preview.style.left = rect.left + "px";
+  preview.style.width = rect.width + "px";
+  preview.style.height = h + "px";
+  document.body.appendChild(preview);
+}
+function removeHoverPreview() {
+  document.querySelectorAll(".hover-duration-preview").forEach(p => p.remove());
+}
 function switchTab(tab) {
   state.view=tab;
   document.querySelectorAll(".nav-tab").forEach(b=>b.classList.remove("active"));
@@ -2169,7 +2190,7 @@ function render() {
                 const covered=isSlotCovered(dk,h,m);
                 return `<div class="cal-slot ${past&&!hasS?"past-slot":""}"
                   style="${covered&&!hasS?"pointer-events:none;":""}"
-                  ${!past&&!hasS&&!isSel&&!covered?`onclick="selectSlot('${dk}',${h},${m})"`:""}>
+                  ${!past&&!hasS&&!isSel&&!covered?`onclick="selectSlot('${dk}',${h},${m})" onmouseenter="showHoverPreview(this)" onmouseleave="removeHoverPreview()"`:""}>
                   ${sc}
                 </div>`;
               }).join("")}
