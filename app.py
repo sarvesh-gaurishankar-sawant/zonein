@@ -26,7 +26,7 @@ if not GEMINI_API_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite",
+    model="gemini-1.5-flash-8b",
     google_api_key=GEMINI_API_KEY,
     temperature=0.2,
 )
