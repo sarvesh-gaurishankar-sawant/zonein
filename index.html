@@ -3200,6 +3200,8 @@
       }
     }
 
+    let _authInitDone = false;
+
     async function initializeAuth() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -3213,19 +3215,26 @@
       } catch (e) {
         console.error('Auth init error:', e);
         showLoginScreen();
+      } finally {
+        _authInitDone = true;
       }
     }
 
     supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED') return; // ignore background token refreshes — they cause re-renders
+      // Ignore events that never need a re-render
+      if (event === 'TOKEN_REFRESHED') {
+        if (session) currentUser = session.user;
+        return;
+      }
+      if (event === 'INITIAL_SESSION') return; // handled by initializeAuth
+      if (!_authInitDone) return; // still in init phase, let initializeAuth handle it
+
       if (event === 'SIGNED_IN' && session) {
         if (!currentUser) {
-          // Only run full init on a genuine new sign-in, not on re-fires/refreshes
           currentUser = session.user;
           showApp();
           await loadFromSupabase();
         } else {
-          // User is already logged in — just update the user object quietly
           currentUser = session.user;
         }
       } else if (event === 'SIGNED_OUT') {
