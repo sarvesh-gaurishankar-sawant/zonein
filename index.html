@@ -4318,14 +4318,13 @@
       state.focusSettings.autostart = !state.focusSettings.autostart;
       await saveSettings();
       scheduleAutostarts();
-      // In-place update: just re-render the settings page if it's active
-      if (state.view === 'settings') render();
+      render();
     }
 
     async function toggleAutostartBreaks() {
       state.focusSettings.autostartBreaks = !state.focusSettings.autostartBreaks;
       await saveSettings();
-      if (state.view === 'settings') render();
+      render();
     }
 
     async function saveInitial() {
@@ -4892,13 +4891,28 @@
     initializeAuth();
     setInterval(() => { updateSessionStatuses(); render(); }, 60000);
     setInterval(updateCountdowns, 1000);
-    // Resize: re-render for layout changes (e.g. orientation flip) but NOT when
-    // a text input is focused — that means the soft keyboard opened/closed on mobile
-    // and calling render() would destroy the focused input and dismiss the keyboard.
+    // Track whether any text input is focused (more reliable than activeElement at resize time).
+    // On Android, the soft keyboard fires a 'resize' event when it opens/closes.
+    // We must NOT call render() during that resize or the focused input is destroyed.
+    let _inputFocused = false;
+    let _inputBlurTimer = null;
+    document.addEventListener('focusin', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        _inputFocused = true;
+        clearTimeout(_inputBlurTimer);
+      }
+    });
+    document.addEventListener('focusout', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        // Small delay: Android fires focusout before the resize, so we keep the flag
+        // alive long enough to block the resize-triggered render.
+        clearTimeout(_inputBlurTimer);
+        _inputBlurTimer = setTimeout(() => { _inputFocused = false; }, 300);
+      }
+    });
     let resizeTimer = null;
     window.addEventListener('resize', () => {
-      const active = document.activeElement;
-      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+      if (_inputFocused) return; // keyboard open/close — do NOT re-render
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => render(), 150);
     });
