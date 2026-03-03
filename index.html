@@ -3780,7 +3780,7 @@
         const nowOffset = ((nowTotal - startTotal) / 5) * rowHeight;
         const showNowLine = calDays.some(d => getDateKey(d) === today) && currentHour >= startH && currentHour <= endH;
 
-        const rangeStart = calDays[0], rangeEnd = calDays[2];
+        const rangeStart = calDays[0], rangeEnd = calDays[calDays.length - 1];
         const rangeLabel = rangeStart.getMonth() === rangeEnd.getMonth()
           ? `${monthNames[rangeStart.getMonth()]} ${rangeStart.getFullYear()}`
           : `${monthNames[rangeStart.getMonth()]} — ${monthNames[rangeEnd.getMonth()]} ${rangeEnd.getFullYear()}`;
