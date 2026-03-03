@@ -3407,7 +3407,11 @@
       return new Date(start.getTime() + s.duration * 60000);
     }
 
-    function isMobile() { return window.innerWidth <= 600; }
+    function isMobile() {
+      return window.innerWidth <= 600 ||
+        window.matchMedia('(max-width: 600px)').matches ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
     function getCalDays() {
       const cols = isMobile() ? 1 : 3;
       const days = [], base = new Date();
