@@ -2631,11 +2631,71 @@
         max-width: 100%;
       }
 
-      /* Bottom bar: full natural height so all buttons are visible */
+      /* Bottom bar: collapsible on mobile */
       .bottom-bar {
         max-width: 100%;
-        padding: 8px 10px;
+        padding: 0;
         flex-shrink: 0;
+        border-top: none;
+        margin-top: 0;
+      }
+
+      /* The drag handle / toggle row */
+      .bb-handle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        gap: 10px;
+      }
+
+      .bb-handle-label {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .bb-handle-label.slot-ready {
+        color: var(--accent);
+      }
+
+      .bb-chevron {
+        font-size: 14px;
+        color: var(--text-muted);
+        transition: transform 0.25s ease;
+        flex-shrink: 0;
+      }
+
+      .bb-panel {
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height 0.3s ease, opacity 0.25s ease;
+        opacity: 0;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+      }
+
+      .bb-panel.open {
+        max-height: 320px;
+        opacity: 1;
+      }
+
+      .bb-panel-inner {
+        padding: 8px 10px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
 
       /* Tighter header */
@@ -3212,6 +3272,16 @@
       document.getElementById('user-dropdown').classList.remove('open');
     }
     document.addEventListener('click', () => closeUserDropdown());
+
+    // ===== MOBILE BOTTOM BAR TOGGLE =====
+    let bottomBarExpanded = false;
+    function toggleBottomBar() {
+      bottomBarExpanded = !bottomBarExpanded;
+      const panel = document.getElementById('bb-panel');
+      const chevron = document.getElementById('bb-chevron');
+      if (panel) panel.classList.toggle('open', bottomBarExpanded);
+      if (chevron) chevron.style.transform = bottomBarExpanded ? 'rotate(180deg)' : '';
+    }
 
     async function logout() {
       try {
@@ -4032,7 +4102,19 @@
 
         bottomBar.style.display = "flex";
         const selTag = state.focusSettings.tag ? state.tags.find(t => t.id === state.focusSettings.tag) : null;
+        const mobile = isMobile();
+        const handleLabel = state.selectedSlot
+          ? `⚡ Book ${state.focusSettings.duration}min${selTag ? ' · ' + selTag.name : ''} · ${getTimeLabel(state.selectedSlot.hour, state.selectedSlot.min)}`
+          : `☰ Booking controls`;
         bottomBar.innerHTML = `
+      ${mobile ? `
+      <div class="bb-handle" onclick="toggleBottomBar()">
+        <span class="bb-handle-label ${state.selectedSlot ? 'slot-ready' : ''}">${handleLabel}</span>
+        <span class="bb-chevron" id="bb-chevron" style="transform:${bottomBarExpanded ? 'rotate(180deg)' : ''}">▲</span>
+      </div>
+      <div class="bb-panel ${bottomBarExpanded ? 'open' : ''}" id="bb-panel">
+        <div class="bb-panel-inner">
+      ` : ''}
       <div class="ai-section">
         <div class="ai-input-row">
           <input
@@ -4076,6 +4158,7 @@
             ? `Book ${state.focusSettings.duration}min${selTag ? " — " + selTag.name : ""} — ${getTimeLabel(state.selectedSlot.hour, state.selectedSlot.min)}`
             : "Select a time slot to book"}
       </button>
+      ${mobile ? `</div></div>` : ''}
     `;
 
         if (showNowLine) {
