@@ -31,7 +31,11 @@ CREATE TABLE settings (
   user_id UUID REFERENCES auth.users PRIMARY KEY,
   duration INT DEFAULT 50,
   task TEXT DEFAULT 'desk',
-  tag TEXT
+  tag TEXT,
+  autostart BOOLEAN DEFAULT false,
+  initial TEXT,
+  autostart_breaks BOOLEAN DEFAULT false,
+  break_duration INT DEFAULT 5
 );
 
 -- Enable Row Level Security
