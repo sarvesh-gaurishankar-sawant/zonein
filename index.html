@@ -3152,8 +3152,12 @@
       }
     }
 
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        currentUser = session.user;
+        showApp();
+        await loadFromSupabase();
+      } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         showLoginScreen();
       }
