@@ -1036,6 +1036,8 @@
       border-top: 1px solid var(--border);
       margin-top: 8px;
       flex-shrink: 0;
+      order: 3;
+      /* desktop: render after #content (order 0) */
     }
 
     .duration-row {
@@ -2631,15 +2633,15 @@
         max-width: 100%;
       }
 
-      /* Booking bar: collapsible, sits ABOVE calendar on mobile */
+      /* Booking bar: collapsible, between header and calendar on mobile */
       .bottom-bar {
         max-width: 100%;
         padding: 0;
         flex-shrink: 0;
         border-top: none;
         margin-top: 0;
-        order: -1;
-        /* move above .app in body flex flow */
+        order: 0;
+        /* natural DOM order: header → bar → content */
       }
 
       /* The drag handle / toggle row — now at top, border below */
@@ -3029,6 +3031,8 @@
           <button class="nav-tab" id="mob-tab-stats" onclick="switchTab('stats');closeMobileNav()">Stats</button>
           <button class="nav-tab" id="mob-tab-settings"
             onclick="switchTab('settings');closeMobileNav()">Settings</button>
+          <button class="nav-tab" style="color:var(--text-secondary);border-top:1px solid var(--border);"
+            onclick="closeMobileNav();logout()">🚪 Logout</button>
         </div>
         <div class="user-section" id="user-section" style="display:none;">
           <div class="user-avatar" id="user-avatar" onclick="toggleUserDropdown(event)">U</div>
@@ -3044,12 +3048,13 @@
       </div>
     </div>
 
+    <!-- Booking bar (between header and content; order:3 on desktop keeps it at bottom) -->
+    <div class="bottom-bar" id="bottom-bar" style="display:none;"></div>
+
     <!-- Content -->
     <div id="content" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
   </div>
 
-  <!-- Bottom bar -->
-  <div class="bottom-bar" id="bottom-bar"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
   <script>
@@ -3277,7 +3282,8 @@
 
     // ===== MOBILE BOTTOM BAR TOGGLE =====
     let bottomBarExpanded = false;
-    function toggleBottomBar() {
+    function toggleBottomBar(e) {
+      if (e) e.stopPropagation(); // prevent document click from firing other close handlers
       bottomBarExpanded = !bottomBarExpanded;
       const panel = document.getElementById('bb-panel');
       const chevron = document.getElementById('bb-chevron');
@@ -4110,7 +4116,7 @@
           : `⚡ Booking controls`;
         bottomBar.innerHTML = `
       ${mobile ? `
-      <div class="bb-handle" onclick="toggleBottomBar()">
+      <div class="bb-handle" onclick="toggleBottomBar(event)">
         <span class="bb-handle-label ${state.selectedSlot ? 'slot-ready' : ''}">${handleLabel}</span>
         <span class="bb-chevron" id="bb-chevron" style="transform:${bottomBarExpanded ? 'rotate(180deg)' : ''}">▼</span>
       </div>
