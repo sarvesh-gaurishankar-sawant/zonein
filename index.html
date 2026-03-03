@@ -3870,7 +3870,7 @@
             const covered = isSlotCovered(dk, h, m);
             return `<div class="cal-slot ${past && !hasS ? "past-slot" : ""}"
                   style="${covered && !hasS ? "pointer-events:none;" : ""}"
-                  ${!past && !hasS && !isSel && !covered ? `onclick="selectSlot('${dk}',${h},${m})" onmouseenter="showHoverPreview(this)" onmouseleave="removeHoverPreview()"` : ""}>
+                  ${!past && !hasS && !isSel && !covered ? `onclick="selectSlot('${dk}',${h},${m})" ${!isMobile() ? `onmouseenter="showHoverPreview(this)" onmouseleave="removeHoverPreview()"` : ''}` : ""}>
                   ${sc}
                 </div>`;
           }).join("")}
