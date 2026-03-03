@@ -3217,10 +3217,17 @@
     }
 
     supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'TOKEN_REFRESHED') return; // ignore background token refreshes — they cause re-renders
       if (event === 'SIGNED_IN' && session) {
-        currentUser = session.user;
-        showApp();
-        await loadFromSupabase();
+        if (!currentUser) {
+          // Only run full init on a genuine new sign-in, not on re-fires/refreshes
+          currentUser = session.user;
+          showApp();
+          await loadFromSupabase();
+        } else {
+          // User is already logged in — just update the user object quietly
+          currentUser = session.user;
+        }
       } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         showLoginScreen();
