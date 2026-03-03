@@ -537,6 +537,56 @@
       background: var(--bg-hover);
     }
 
+    /* Hamburger menu button — hidden on desktop */
+    .hamburger-btn {
+      display: none;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border-light);
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 20px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .hamburger-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    /* Mobile dropdown nav */
+    .mobile-nav-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      box-shadow: 4px 4px 0px #000;
+      z-index: 1000;
+      min-width: 160px;
+      animation: fadeIn 0.1s ease-out;
+    }
+
+    .mobile-nav-dropdown.open {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mobile-nav-dropdown .nav-tab {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mobile-nav-dropdown .nav-tab:last-child {
+      border-bottom: none;
+    }
+
     /* Calendar card */
     .cal-card {
       flex: 1;
@@ -2558,11 +2608,13 @@
         font-size: 14px;
       }
 
-      /* Nav tabs — shrink text */
-      .nav-tab {
-        padding: 6px 10px;
-        font-size: 10px;
-        letter-spacing: 0.5px;
+      /* Nav tabs — hide on mobile, show hamburger */
+      .nav-tabs {
+        display: none !important;
+      }
+
+      .hamburger-btn {
+        display: flex;
       }
 
       /* Calendar card — no side margin, always some minimum height */
@@ -2839,13 +2891,23 @@
         <div class="logo-icon">Z</div>
         <div class="logo-text">Zone<span>In</span></div>
       </div>
-      <div style="display:flex; align-items:center; gap:12px; flex:1; justify-content:flex-end;">
+      <div style="display:flex; align-items:center; gap:12px; flex:1; justify-content:flex-end; position:relative;">
         <div class="nav-tabs">
           <button class="nav-tab active" id="tab-calendar" onclick="switchTab('calendar')">Calendar</button>
           <button class="nav-tab" id="tab-inbox" onclick="switchTab('inbox')">Inbox</button>
           <button class="nav-tab" id="tab-tags" onclick="switchTab('tags')">Tags</button>
           <button class="nav-tab" id="tab-stats" onclick="switchTab('stats')">Stats</button>
           <button class="nav-tab" id="tab-settings" onclick="switchTab('settings')">Settings</button>
+        </div>
+        <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileNav(event)">☰</button>
+        <div class="mobile-nav-dropdown" id="mobile-nav-dropdown">
+          <button class="nav-tab active" id="mob-tab-calendar"
+            onclick="switchTab('calendar');closeMobileNav()">Calendar</button>
+          <button class="nav-tab" id="mob-tab-inbox" onclick="switchTab('inbox');closeMobileNav()">Inbox</button>
+          <button class="nav-tab" id="mob-tab-tags" onclick="switchTab('tags');closeMobileNav()">Tags</button>
+          <button class="nav-tab" id="mob-tab-stats" onclick="switchTab('stats');closeMobileNav()">Stats</button>
+          <button class="nav-tab" id="mob-tab-settings"
+            onclick="switchTab('settings');closeMobileNav()">Settings</button>
         </div>
         <div class="user-section" id="user-section" style="display:none;">
           <div class="user-avatar" id="user-avatar" onclick="toggleUserDropdown(event)">U</div>
@@ -3614,9 +3676,20 @@
     function switchTab(tab) {
       state.view = tab;
       document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
-      document.getElementById("tab-" + tab).classList.add("active");
+      const desktopTab = document.getElementById("tab-" + tab);
+      const mobileTab = document.getElementById("mob-tab-" + tab);
+      if (desktopTab) desktopTab.classList.add("active");
+      if (mobileTab) mobileTab.classList.add("active");
       render();
     }
+    function toggleMobileNav(e) {
+      e.stopPropagation();
+      document.getElementById("mobile-nav-dropdown").classList.toggle("open");
+    }
+    function closeMobileNav() {
+      document.getElementById("mobile-nav-dropdown").classList.remove("open");
+    }
+    document.addEventListener("click", () => closeMobileNav());
 
     // ===== SESSION DETAIL MODAL =====
     let modalSessionId = null;
