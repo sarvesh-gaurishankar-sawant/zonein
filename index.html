@@ -4211,19 +4211,13 @@
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Automatically start a booked session at its scheduled time</div>
           </div>
           <button onclick="toggleAutostart()" style="
-            width:44px;height:24px;border-radius:999px;border:none;cursor:pointer;
+            padding:5px 12px;border:1px solid ${s.autostart ? 'var(--accent)' : 'var(--border-light)'};
             background:${s.autostart ? 'var(--accent)' : 'var(--bg-surface)'};
-            border:1px solid ${s.autostart ? 'var(--accent)' : 'var(--border-light)'};
-            position:relative;transition:all 0.2s;flex-shrink:0;
-          ">
-            <span style="
-              position:absolute;top:3px;
-              left:${s.autostart ? '22px' : '3px'};
-              width:16px;height:16px;border-radius:50%;
-              background:${s.autostart ? '#000' : 'var(--text-muted)'};
-              transition:left 0.2s;display:block;
-            "></span>
-          </button>
+            color:${s.autostart ? '#000' : 'var(--text-muted)'};
+            font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;
+            ${s.autostart ? 'box-shadow:2px 2px 0 #000;' : ''}
+            letter-spacing:1px;text-transform:uppercase;flex-shrink:0;
+          ">${s.autostart ? 'ON' : 'OFF'}</button>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -4232,19 +4226,13 @@
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Automatically start a 5-minute break after a session</div>
           </div>
           <button onclick="toggleAutostartBreaks()" style="
-            width:44px;height:24px;border-radius:999px;border:none;cursor:pointer;
+            padding:5px 12px;border:1px solid ${s.autostartBreaks ? 'var(--accent)' : 'var(--border-light)'};
             background:${s.autostartBreaks ? 'var(--accent)' : 'var(--bg-surface)'};
-            border:1px solid ${s.autostartBreaks ? 'var(--accent)' : 'var(--border-light)'};
-            position:relative;transition:all 0.2s;flex-shrink:0;
-          ">
-            <span style="
-              position:absolute;top:3px;
-              left:${s.autostartBreaks ? '22px' : '3px'};
-              width:16px;height:16px;border-radius:50%;
-              background:${s.autostartBreaks ? '#000' : 'var(--text-muted)'};
-              transition:left 0.2s;display:block;
-            "></span>
-          </button>
+            color:${s.autostartBreaks ? '#000' : 'var(--text-muted)'};
+            font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;
+            ${s.autostartBreaks ? 'box-shadow:2px 2px 0 #000;' : ''}
+            letter-spacing:1px;text-transform:uppercase;flex-shrink:0;
+          ">${s.autostartBreaks ? 'ON' : 'OFF'}</button>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -4330,13 +4318,14 @@
       state.focusSettings.autostart = !state.focusSettings.autostart;
       await saveSettings();
       scheduleAutostarts();
-      render();
+      // In-place update: just re-render the settings page if it's active
+      if (state.view === 'settings') render();
     }
 
     async function toggleAutostartBreaks() {
       state.focusSettings.autostartBreaks = !state.focusSettings.autostartBreaks;
       await saveSettings();
-      render();
+      if (state.view === 'settings') render();
     }
 
     async function saveInitial() {
@@ -4903,7 +4892,16 @@
     initializeAuth();
     setInterval(() => { updateSessionStatuses(); render(); }, 60000);
     setInterval(updateCountdowns, 1000);
-    window.addEventListener('resize', () => render());
+    // Resize: re-render for layout changes (e.g. orientation flip) but NOT when
+    // a text input is focused — that means the soft keyboard opened/closed on mobile
+    // and calling render() would destroy the focused input and dismiss the keyboard.
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => render(), 150);
+    });
 
     // ===== AI COMMAND BAR =====
     const FLASK_URL = 'https://zonein.fly.dev';
