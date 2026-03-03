@@ -4316,15 +4316,15 @@
 
     async function toggleAutostart() {
       state.focusSettings.autostart = !state.focusSettings.autostart;
-      await saveSettings();
+      render(); // optimistic — flip UI instantly, save in background
+      saveSettings();
       scheduleAutostarts();
-      render();
     }
 
     async function toggleAutostartBreaks() {
       state.focusSettings.autostartBreaks = !state.focusSettings.autostartBreaks;
-      await saveSettings();
-      render();
+      render(); // optimistic — flip UI instantly, save in background
+      saveSettings();
     }
 
     async function saveInitial() {
