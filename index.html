@@ -2631,23 +2631,25 @@
         max-width: 100%;
       }
 
-      /* Bottom bar: collapsible on mobile */
+      /* Booking bar: collapsible, sits ABOVE calendar on mobile */
       .bottom-bar {
         max-width: 100%;
         padding: 0;
         flex-shrink: 0;
         border-top: none;
         margin-top: 0;
+        order: -1;
+        /* move above .app in body flex flow */
       }
 
-      /* The drag handle / toggle row */
+      /* The drag handle / toggle row — now at top, border below */
       .bb-handle {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 8px 12px;
         background: var(--bg-card);
-        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
         cursor: pointer;
         user-select: none;
         -webkit-tap-highlight-color: transparent;
@@ -4105,12 +4107,12 @@
         const mobile = isMobile();
         const handleLabel = state.selectedSlot
           ? `⚡ Book ${state.focusSettings.duration}min${selTag ? ' · ' + selTag.name : ''} · ${getTimeLabel(state.selectedSlot.hour, state.selectedSlot.min)}`
-          : `☰ Booking controls`;
+          : `⚡ Booking controls`;
         bottomBar.innerHTML = `
       ${mobile ? `
       <div class="bb-handle" onclick="toggleBottomBar()">
         <span class="bb-handle-label ${state.selectedSlot ? 'slot-ready' : ''}">${handleLabel}</span>
-        <span class="bb-chevron" id="bb-chevron" style="transform:${bottomBarExpanded ? 'rotate(180deg)' : ''}">▲</span>
+        <span class="bb-chevron" id="bb-chevron" style="transform:${bottomBarExpanded ? 'rotate(180deg)' : ''}">▼</span>
       </div>
       <div class="bb-panel ${bottomBarExpanded ? 'open' : ''}" id="bb-panel">
         <div class="bb-panel-inner">
