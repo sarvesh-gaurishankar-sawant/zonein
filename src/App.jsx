@@ -137,9 +137,9 @@ export default function App() {
       updated[idx] = s;
       saveSession(s);
       playStartChime();
-      if (focusSettings.autostartBreaks) {
-        setTimeout(() => setBreakVisible(true), 500);
-      }
+      // Always show break overlay on complete — autostartBreaks controls whether
+      // it skips the prompt and goes straight to the timer (handled in BreakOverlay)
+      setTimeout(() => setBreakVisible(true), 500);
       return updated;
     });
     if (sessionTimersRef.current[id]) {
