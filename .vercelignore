@@ -1,6 +1,0 @@
-# Backend - deployed separately on fly.io
-app.py
-requirements.txt
-Dockerfile
-fly.toml
-supabase-schema.sql
