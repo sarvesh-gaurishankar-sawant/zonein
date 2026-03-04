@@ -56,6 +56,13 @@ export default function App() {
   const autostartTimersRef = useRef({});
   const countdownIntervalRef = useRef(null);
 
+  // Live refs to avoid stale closures in autostart timers.
+  // sessionsRef is kept current via useEffect; startSessionRef is assigned
+  // inline after startSession is defined (so it's always the latest closure).
+  const sessionsRef = useRef([]);
+  const startSessionRef = useRef(null);
+  useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
+
   // ===== CHIME =====
   function playStartChime() {
     try {
@@ -127,6 +134,8 @@ export default function App() {
     setCompanionMeta({ tagName: sTag?.name || '', duration: s.duration, tagId: s.tag || null });
     setCompanionPhase('start');
   }
+  // Assign inline (during render) so the ref is always current when a timer fires
+  startSessionRef.current = startSession;
 
   function completeSesion(id, auto = false) {
     setSessions(prev => {
@@ -214,6 +223,8 @@ export default function App() {
   }
 
   // ===== AUTOSTART =====
+  // Keep startSessionRef always pointing at the latest startSession function
+  // so autostart timers (which may fire hours later) never call a stale closure.
   function scheduleAutostarts(sessionsArr, settings) {
     Object.keys(autostartTimersRef.current).forEach(id => {
       clearTimeout(autostartTimersRef.current[id]);
@@ -226,15 +237,16 @@ export default function App() {
       const [year, month, day] = s.date.split('-').map(Number);
       const startTime = new Date(year, month - 1, day, s.start_hour, s.start_min, 0).getTime();
       const msUntil = startTime - now;
-      if (msUntil > 0) {
-        autostartTimersRef.current[s.id] = setTimeout(async () => {
-          const fresh = sessions.find(x => x.id === s.id);
-          if (fresh && fresh.status === 'booked') {
-            await startSession(s.id);
-          }
-          delete autostartTimersRef.current[s.id];
-        }, msUntil);
-      }
+      // Use 0 delay for sessions whose start time has already passed
+      const delay = msUntil > 0 ? msUntil : 0;
+      autostartTimersRef.current[s.id] = setTimeout(async () => {
+        // Read from refs to always get the latest sessions array and startSession fn
+        const fresh = sessionsRef.current.find(x => x.id === s.id);
+        if (fresh && fresh.status === 'booked') {
+          await startSessionRef.current(s.id);
+        }
+        delete autostartTimersRef.current[s.id];
+      }, delay);
     });
   }
 
