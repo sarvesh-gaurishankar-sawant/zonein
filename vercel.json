@@ -1,9 +1,9 @@
 {
-  "outputDirectory": ".",
-  "buildCommand": "echo 'Static site - no build needed'",
-  "installCommand": "echo 'No install needed'",
-  "framework": null,
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
   "routes": [
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
