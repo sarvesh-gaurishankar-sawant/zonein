@@ -10,9 +10,10 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
   const timerRef = useRef(null);
 
   useEffect(() => {
-    if (visible && autostartBreaks) {
+    if (!visible) return;
+    if (autostartBreaks) {
       startBreak(breakDuration || 5);
-    } else if (visible) {
+    } else {
       setPhase('prompt');
     }
   }, [visible]);
