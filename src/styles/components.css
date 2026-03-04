@@ -628,6 +628,16 @@
 }
 .companion-result.yes { color: var(--green); }
 .companion-result.no { color: var(--text-secondary); }
+.companion-loading {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 13px;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 @media (max-width: 600px) {
   .companion-overlay { padding: 12px; }
   .companion-card { width: 100%; }

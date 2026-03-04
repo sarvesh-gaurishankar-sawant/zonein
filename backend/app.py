@@ -392,5 +392,176 @@ def schedule():
     })
 
 
+# ===== COMPANION =====
+
+COMPANION_SYSTEM_PROMPT = """You are Z, a warm and motivating AI focus companion inside ZoneIn — a productivity app.
+
+Your job is to send short, personalized messages to the user based on their session history and current context.
+
+User context:
+- Current time of day: {time_of_day}
+- Day of week: {day_of_week}
+- Session tag (what they're working on): {tag_name}
+- Session duration: {duration} minutes
+- Phase: {phase}  (start = session just started, end = session just ended)
+- Did they complete their goal (end phase only): {completed}
+- Their goal for this session: {session_goal}
+
+Their recent session history (last 10 sessions):
+{history_summary}
+
+Instructions:
+- Be warm, brief (1-2 sentences MAX), and encouraging
+- Use their name patterns if you spot them (e.g. if they always study at night)
+- If phase is "start": ask what they're working on OR give a personalized motivating opener based on their patterns
+- If phase is "end" and completed=true: celebrate with specific enthusiasm
+- If phase is "end" and completed=false: be empathetic and encouraging, don't make them feel bad
+- If phase is "proactive": they just opened the app. Check if it's a good time for them based on history. Be brief and welcoming.
+- Keep it human, not robotic. Occasional emoji is fine.
+- Do NOT repeat the same phrases. Vary your style.
+
+Return ONLY a JSON object:
+{{
+  "message": "<your short message here>",
+  "show_input": <true if start phase and you want them to type their goal, false otherwise>
+}}"""
+
+companion_prompt = ChatPromptTemplate.from_messages([
+    ("system", COMPANION_SYSTEM_PROMPT),
+    ("human", "Generate a companion message for this user."),
+])
+
+companion_chain = companion_prompt | llm | parser
+
+
+def get_time_of_day(hour: int) -> str:
+    if 5 <= hour < 12:
+        return "morning"
+    elif 12 <= hour < 17:
+        return "afternoon"
+    elif 17 <= hour < 21:
+        return "evening"
+    else:
+        return "night"
+
+
+def summarize_history(logs: list) -> str:
+    if not logs:
+        return "No history yet — this might be one of their first sessions."
+    lines = []
+    for log in logs[-10:]:
+        goal = log.get("goal") or "no goal set"
+        done = "✓ completed" if log.get("completed") else "✗ not completed"
+        tod = log.get("time_of_day") or "unknown time"
+        day = log.get("day_of_week") or ""
+        tag = log.get("tag_id") or "no tag"
+        dur = log.get("duration") or "?"
+        lines.append(f"- {day} {tod}: {dur}min [{tag}] — goal: '{goal}' — {done}")
+    return "\n".join(lines)
+
+
+@app.route("/api/companion/message", methods=["POST"])
+def companion_message():
+    # Auth
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing authorization token"}), 401
+    token = auth_header.split(" ")[1]
+    user = get_user_from_token(token)
+    if not user:
+        return jsonify({"error": "Invalid or expired token"}), 401
+    user_id = str(user.id)
+
+    body = request.get_json() or {}
+    phase = body.get("phase", "start")  # 'start' | 'end' | 'proactive'
+    session_goal = body.get("goal") or ""
+    completed = body.get("completed")  # bool or None
+    tag_name = body.get("tag_name") or "general focus"
+    duration = body.get("duration") or 50
+    timezone_str = body.get("timezone", "UTC")
+
+    user_tz = get_user_tz(timezone_str)
+    now = datetime.now(user_tz)
+    time_of_day = get_time_of_day(now.hour)
+    day_of_week = now.strftime("%A")
+
+    # Fetch recent companion logs
+    try:
+        logs_res = (
+            supabase.table("companion_logs")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(10)
+            .execute()
+        )
+        logs = logs_res.data or []
+    except Exception:
+        logs = []
+
+    history_summary = summarize_history(logs)
+
+    try:
+        result = companion_chain.invoke({
+            "time_of_day": time_of_day,
+            "day_of_week": day_of_week,
+            "tag_name": tag_name,
+            "duration": duration,
+            "phase": phase,
+            "completed": str(completed) if completed is not None else "N/A",
+            "session_goal": session_goal or "not specified",
+            "history_summary": history_summary,
+        })
+        message = result.get("message", "Let's get focused!")
+        show_input = result.get("show_input", phase == "start")
+    except Exception as e:
+        # Graceful fallback
+        fallbacks = {
+            "start": "Ready to zone in! What are you working on?",
+            "end": "Session done! Great work 💪",
+            "proactive": "Hey! Good to see you. Ready to focus?",
+        }
+        message = fallbacks.get(phase, "Let's get focused!")
+        show_input = phase == "start"
+
+    return jsonify({"message": message, "show_input": show_input})
+
+
+@app.route("/api/companion/log", methods=["POST"])
+def companion_log():
+    # Auth
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing authorization token"}), 401
+    token = auth_header.split(" ")[1]
+    user = get_user_from_token(token)
+    if not user:
+        return jsonify({"error": "Invalid or expired token"}), 401
+    user_id = str(user.id)
+
+    body = request.get_json() or {}
+    timezone_str = body.get("timezone", "UTC")
+    user_tz = get_user_tz(timezone_str)
+    now = datetime.now(user_tz)
+
+    log_entry = {
+        "user_id": user_id,
+        "session_id": body.get("session_id") or None,
+        "goal": body.get("goal") or None,
+        "completed": body.get("completed"),  # bool
+        "tag_id": body.get("tag_id") or None,
+        "duration": body.get("duration") or None,
+        "time_of_day": get_time_of_day(now.hour),
+        "day_of_week": now.strftime("%A"),
+    }
+
+    try:
+        supabase.table("companion_logs").insert(log_entry).execute()
+    except Exception as e:
+        return jsonify({"error": f"Failed to save log: {str(e)}"}), 500
+
+    return jsonify({"success": True})
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=False)
