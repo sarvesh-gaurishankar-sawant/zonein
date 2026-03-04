@@ -580,7 +580,8 @@
   flex-shrink: 0;
 }
 .companion-msg {
-  font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.4;
+  font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.55;
+  max-height: 140px; overflow-y: auto;
 }
 .companion-goal {
   color: var(--accent); font-style: italic;
