@@ -126,8 +126,6 @@ export default function SessionCompanion({ phase, sessionGoal, sessionMeta, onGo
     }).catch(() => {
       setEndMessage(did ? FALLBACK.end_yes : FALLBACK.end_no);
     });
-
-    setTimeout(() => dismiss(), 2500);
   }
 
   if (!visible || !phase) return null;
@@ -203,9 +201,14 @@ export default function SessionCompanion({ phase, sessionGoal, sessionMeta, onGo
 
         {/* END RESULT */}
         {endResult && (
-          <div className={`companion-result ${endResult}`}>
-            {endMessage || (endResult === 'yes' ? FALLBACK.end_yes : FALLBACK.end_no)}
-          </div>
+          <>
+            <div className={`companion-result ${endResult}`}>
+              {endMessage || (endResult === 'yes' ? FALLBACK.end_yes : FALLBACK.end_no)}
+            </div>
+            <div className="companion-btns">
+              <button className="companion-btn ghost" onClick={dismiss}>Dismiss</button>
+            </div>
+          </>
         )}
 
       </div>
