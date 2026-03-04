@@ -133,7 +133,6 @@ export default function App() {
       updated[idx] = s;
       saveSession(s);
       playStartChime();
-      showNotifPopup('Session Complete! 🎉', `Great work! ${s.duration} minutes of focus done.`);
       if (auto && focusSettings.autostartBreaks) {
         setTimeout(() => setBreakVisible(true), 500);
       }
