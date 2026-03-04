@@ -9,6 +9,7 @@ import { supabase } from './lib/supabase';
 import NavBar from './components/shared/NavBar';
 import Toast from './components/shared/Toast';
 import NotifPopup from './components/shared/NotifPopup';
+import SessionCompanion from './components/shared/SessionCompanion';
 import LoginScreen from './components/auth/LoginScreen';
 import BreakOverlay from './components/timer/BreakOverlay';
 import CalendarView from './components/calendar/CalendarView';
@@ -42,6 +43,11 @@ export default function App() {
   const [modalSessionId, setModalSessionId] = useState(null);
   const [notif, setNotif] = useState({ visible: false, title: '', body: '' });
   const [breakVisible, setBreakVisible] = useState(false);
+
+  // ===== COMPANION =====
+  const [companionPhase, setCompanionPhase] = useState(null); // 'start' | 'end-check'
+  const [companionSessionId, setCompanionSessionId] = useState(null);
+  const companionGoalRef = useRef(null); // goal set at session start
 
   // Timer refs
   const sessionTimersRef = useRef({});
@@ -112,6 +118,10 @@ export default function App() {
     playStartChime();
     showToast('Session started! 🔥');
     scheduleAutostarts(updated, focusSettings);
+    // Show companion check-in
+    companionGoalRef.current = null;
+    setCompanionSessionId(id);
+    setCompanionPhase('start');
   }
 
   function completeSesion(id, auto = false) {
@@ -133,6 +143,9 @@ export default function App() {
       clearTimeout(sessionTimersRef.current[id]);
       delete sessionTimersRef.current[id];
     }
+    // Show companion end check-in
+    setCompanionSessionId(id);
+    setCompanionPhase('end-check');
   }
 
   async function cancelSession(id) {
@@ -427,6 +440,14 @@ export default function App() {
 
       <Toast toast={toast} onDismiss={dismissToast} />
       <NotifPopup notif={notif} onDismiss={() => setNotif(n => ({ ...n, visible: false }))} />
+
+      <SessionCompanion
+        phase={companionPhase}
+        sessionGoal={companionGoalRef.current}
+        onGoalSet={goal => { companionGoalRef.current = goal; }}
+        onCheckin={did => { /* could save to notes in future */ }}
+        onDismiss={() => { setCompanionPhase(null); setCompanionSessionId(null); }}
+      />
     </div>
   );
 }
