@@ -137,7 +137,7 @@ export default function App() {
       updated[idx] = s;
       saveSession(s);
       playStartChime();
-      if (auto && focusSettings.autostartBreaks) {
+      if (focusSettings.autostartBreaks) {
         setTimeout(() => setBreakVisible(true), 500);
       }
       return updated;
