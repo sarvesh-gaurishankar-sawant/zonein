@@ -232,7 +232,10 @@ export default function CalendarView({
                     } : undefined}
                     onMouseEnter={!mobile && !past && !hasS && !covered ? (e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
-                      const height = Math.round((focusSettings.duration / 5) * rowH) - 2;
+                      const scrollBottom = scrollRef.current?.getBoundingClientRect().bottom ?? window.innerHeight;
+                      const rawHeight = Math.round((focusSettings.duration / 5) * rowH) - 2;
+                      // Clamp height so the preview never overflows below the calendar scroll area
+                      const height = Math.min(rawHeight, scrollBottom - rect.top - 2);
                       setHoverPreview({ top: rect.top, left: rect.left, width: rect.width, height });
                     } : undefined}
                     onMouseLeave={!mobile ? () => setHoverPreview(null) : undefined}
