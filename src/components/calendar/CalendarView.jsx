@@ -230,13 +230,14 @@ export default function CalendarView({
                     key={dk}
                     className={`cal-slot${past && !hasS ? ' past-slot' : ''}`}
                     style={covered && !hasS ? { pointerEvents: 'none' } : {}}
-                    onClick={!hasS && !isSel && !covered ? () => {
+                    onClick={!hasS && !covered ? (e) => {
+                      if (isSel) return; // let popup button clicks go through
                       setConfirmingCancel(null);
                       setSelectedSlot((prev) =>
                         prev?.date === dk && prev?.hour === h && prev?.min === m ? null : { date: dk, hour: h, min: m }
                       );
                     } : undefined}
-                    onMouseEnter={!mobile && !past && !hasS && !covered ? (e) => {
+                    onMouseEnter={!mobile && !hasS && !covered ? (e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const scrollBottom = scrollRef.current?.getBoundingClientRect().bottom ?? window.innerHeight;
                       const rawHeight = Math.round((focusSettings.duration / 5) * rowH) - 2;
