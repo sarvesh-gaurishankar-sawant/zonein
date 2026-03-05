@@ -138,6 +138,12 @@ export default function App() {
   startSessionRef.current = startSession;
 
   function completeSesion(id, auto = false) {
+    // Find linked partner BEFORE entering setSessions, using the current sessions snapshot
+    const completingSession = sessions.find(x => x.id === id);
+    const linkedPartner = completingSession?.linked_id
+      ? sessions.find(x => x.linked_id === completingSession.linked_id && x.id !== id && x.status === 'booked')
+      : null;
+
     setSessions(prev => {
       const idx = prev.findIndex(x => x.id === id);
       if (idx === -1) return prev;
@@ -146,24 +152,18 @@ export default function App() {
       updated[idx] = s;
       saveSession(s);
       playStartChime();
-
-      // Find linked partner (next part of a split midnight session)
-      const linkedPartner = s.linked_id
-        ? updated.find(x => x.linked_id === s.linked_id && x.id !== s.id && x.status === 'booked')
-        : null;
-
-      // Only show break overlay if this is NOT part of a split session continuing into the next part
-      if (auto && focusSettings.autostartBreaks && !linkedPartner) {
-        setTimeout(() => setBreakVisible(true), 500);
-      }
-
-      // Auto-start the next part of a split session
-      if (linkedPartner) {
-        setTimeout(() => startSessionRef.current(linkedPartner.id), 500);
-      }
-
       return updated;
     });
+
+    // Only show break overlay if this is NOT a split session continuing into the next part
+    if (auto && focusSettings.autostartBreaks && !linkedPartner) {
+      setTimeout(() => setBreakVisible(true), 500);
+    }
+
+    // Auto-start the next part of a split session
+    if (linkedPartner) {
+      setTimeout(() => startSessionRef.current(linkedPartner.id), 500);
+    }
     if (sessionTimersRef.current[id]) {
       clearTimeout(sessionTimersRef.current[id]);
       delete sessionTimersRef.current[id];
