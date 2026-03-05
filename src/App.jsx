@@ -146,26 +146,44 @@ export default function App() {
       updated[idx] = s;
       saveSession(s);
       playStartChime();
-      if (auto && focusSettings.autostartBreaks) {
+
+      // Find linked partner (next part of a split midnight session)
+      const linkedPartner = s.linked_id
+        ? updated.find(x => x.linked_id === s.linked_id && x.id !== s.id && x.status === 'booked')
+        : null;
+
+      // Only show break overlay if this is NOT part of a split session continuing into the next part
+      if (auto && focusSettings.autostartBreaks && !linkedPartner) {
         setTimeout(() => setBreakVisible(true), 500);
       }
+
+      // Auto-start the next part of a split session
+      if (linkedPartner) {
+        setTimeout(() => startSessionRef.current(linkedPartner.id), 500);
+      }
+
       return updated;
     });
     if (sessionTimersRef.current[id]) {
       clearTimeout(sessionTimersRef.current[id]);
       delete sessionTimersRef.current[id];
     }
-    // Show companion end check-in
-    setCompanionSessionId(id);
+
+    // Only show companion end check-in if this is NOT the first part of a split session
+    // (we'll show it when the real final part completes)
     setSessions(prevForMeta => {
       const s = prevForMeta.find(x => x.id === id);
-      if (s) {
+      const linkedPartner = s?.linked_id
+        ? prevForMeta.find(x => x.linked_id === s.linked_id && x.id !== s.id && x.status === 'booked')
+        : null;
+      if (s && !linkedPartner) {
+        setCompanionSessionId(id);
         const sTag = s.tag ? tags.find(t => t.id === s.tag) : null;
         setCompanionMeta({ tagName: sTag?.name || '', duration: s.duration, tagId: s.tag || null });
+        setCompanionPhase('end-check');
       }
       return prevForMeta;
     });
-    setCompanionPhase('end-check');
   }
 
   async function cancelSession(id) {
