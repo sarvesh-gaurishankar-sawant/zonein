@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { getTimeLabel } from '../../lib/utils';
+import { getTimeLabel, isSlotPast } from '../../lib/utils';
 import { FLASK_URL } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
 
-export default function BottomBar({ focusSettings, setFocusSettings, saveSettings, selectedSlot, tags, onBook, sessions, setSessions, isMobile, showToast }) {
+export default function BottomBar({ focusSettings, setFocusSettings, saveSettings, selectedSlot, tags, onBook, onLogDone, sessions, setSessions, isMobile, showToast }) {
   const [bbExpanded, setBbExpanded] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState({ visible: false, type: '', msg: '' });
@@ -11,8 +11,9 @@ export default function BottomBar({ focusSettings, setFocusSettings, saveSetting
   const aiResultTimeout = useRef(null);
 
   const selTag = focusSettings.tag ? tags.find((t) => t.id === focusSettings.tag) : null;
+  const slotIsPast = selectedSlot ? isSlotPast(selectedSlot.date, selectedSlot.hour, selectedSlot.min) : false;
   const handleLabel = selectedSlot
-    ? `⚡ Book ${focusSettings.duration}min${selTag ? ' · ' + selTag.name : ''} · ${getTimeLabel(selectedSlot.hour, selectedSlot.min)}`
+    ? `${slotIsPast ? '✓ Log' : '⚡ Book'} ${focusSettings.duration}min${selTag ? ' · ' + selTag.name : ''} · ${getTimeLabel(selectedSlot.hour, selectedSlot.min)}`
     : '⚡ Booking controls';
 
   const submitAI = async () => {
@@ -131,11 +132,15 @@ export default function BottomBar({ focusSettings, setFocusSettings, saveSetting
       <button
         className="book-bar-btn"
         disabled={!selectedSlot}
-        onClick={() => selectedSlot && onBook(selectedSlot.date, selectedSlot.hour, selectedSlot.min)}
+        onClick={() => {
+          if (!selectedSlot) return;
+          if (slotIsPast) onLogDone(selectedSlot.date, selectedSlot.hour, selectedSlot.min);
+          else onBook(selectedSlot.date, selectedSlot.hour, selectedSlot.min);
+        }}
       >
-        <span className="bolt">⚡</span>
+        <span className="bolt">{slotIsPast ? '✓' : '⚡'}</span>
         {selectedSlot
-          ? `Book ${focusSettings.duration}min${selTag ? ' — ' + selTag.name : ''} — ${getTimeLabel(selectedSlot.hour, selectedSlot.min)}`
+          ? `${slotIsPast ? 'Log Done' : 'Book'} ${focusSettings.duration}min${selTag ? ' — ' + selTag.name : ''} — ${getTimeLabel(selectedSlot.hour, selectedSlot.min)}`
           : 'Select a time slot to book'}
       </button>
     </>

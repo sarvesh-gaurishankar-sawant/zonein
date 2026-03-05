@@ -10,7 +10,7 @@ export default function CalendarView({
   selectedSlot, setSelectedSlot,
   confirmingCancel, setConfirmingCancel,
   onStartSession, onCompleteSession, onCancelSession,
-  onOpenModal, onBook,
+  onOpenModal, onBook, onLogDone,
 }) {
   const scrollRef = useRef(null);
   const [mobile, setMobile] = useState(isMobile());
@@ -151,9 +151,15 @@ export default function CalendarView({
                   const popH = Math.round((focusSettings.duration / 5) * rowH) - 2;
                   sc = (
                     <div className="slot-popup" style={{ height: popH }}>
-                      <button className="slot-popup-btn book" onClick={() => onBook(dk, h, m)}>
-                        Book {focusSettings.duration}min
-                      </button>
+                      {past ? (
+                        <button className="slot-popup-btn book" onClick={() => onLogDone(dk, h, m)}>
+                          ✓ Log {focusSettings.duration}min
+                        </button>
+                      ) : (
+                        <button className="slot-popup-btn book" onClick={() => onBook(dk, h, m)}>
+                          Book {focusSettings.duration}min
+                        </button>
+                      )}
                       <button className="slot-popup-btn clear" onClick={() => setSelectedSlot(null)}>Clear</button>
                     </div>
                   );
@@ -224,7 +230,7 @@ export default function CalendarView({
                     key={dk}
                     className={`cal-slot${past && !hasS ? ' past-slot' : ''}`}
                     style={covered && !hasS ? { pointerEvents: 'none' } : {}}
-                    onClick={!past && !hasS && !isSel && !covered ? () => {
+                    onClick={!hasS && !isSel && !covered ? () => {
                       setConfirmingCancel(null);
                       setSelectedSlot((prev) =>
                         prev?.date === dk && prev?.hour === h && prev?.min === m ? null : { date: dk, hour: h, min: m }

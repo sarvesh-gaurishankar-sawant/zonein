@@ -197,6 +197,27 @@ export default function App() {
     showToast(idsToCancel.length > 1 ? 'Split session cancelled (both parts)' : 'Session cancelled');
   }
 
+  // ===== LOG DONE (past session) =====
+  async function logDoneSession(date, hour, min) {
+    const duration = focusSettings.duration;
+    const s = {
+      id: genId(),
+      date,
+      start_hour: hour,
+      start_min: min,
+      duration,
+      task: focusSettings.task || 'desk',
+      tag: focusSettings.tag || null,
+      status: 'completed',
+      notes: '',
+      linked_id: null,
+    };
+    setSessions(prev => [...prev, s]);
+    setSelectedSlot(null);
+    showToast(`✓ Logged ${getTimeLabel(hour, min)} — ${duration}min`);
+    await saveSession(s);
+  }
+
   // ===== BOOK SESSION =====
   async function bookSession(date, hour, min) {
     const duration = focusSettings.duration;
@@ -437,6 +458,7 @@ export default function App() {
           selectedSlot={selectedSlot}
           tags={tags}
           onBook={bookSession}
+          onLogDone={logDoneSession}
           sessions={sessions}
           setSessions={setSessions}
           isMobile={isMobile()}
@@ -461,6 +483,7 @@ export default function App() {
             onCancelSession={cancelSession}
             onOpenModal={setModalSessionId}
             onBook={bookSession}
+            onLogDone={logDoneSession}
           />
         )}
 
