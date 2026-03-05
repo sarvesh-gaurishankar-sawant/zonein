@@ -13,6 +13,7 @@ CREATE TABLE sessions (
   status TEXT NOT NULL DEFAULT 'booked',
   started_at BIGINT,
   notes TEXT,
+  linked_id TEXT,  -- shared ID linking split sessions that overflow past midnight
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

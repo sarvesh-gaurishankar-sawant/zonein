@@ -37,6 +37,7 @@ export default function App() {
   const { toast, showToast, dismissToast } = useToast();
 
   const [view, setView] = useState('calendar');
+  const [tabVisits, setTabVisits] = useState({ calendar: 1, inbox: 0, tags: 0, stats: 0, settings: 0 });
   const [calOffset, setCalOffset] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmingCancel, setConfirmingCancel] = useState(null);
@@ -169,32 +170,56 @@ export default function App() {
   }
 
   async function cancelSession(id) {
-    setSessions(prev => prev.filter(x => x.id !== id));
-    await deleteSession(id);
+    // If this session is part of a linked pair (midnight overflow), cancel both
+    const s = sessions.find(x => x.id === id);
+    const linked = s?.linked_id ? sessions.filter(x => x.linked_id === s.linked_id) : [s];
+    const idsToCancel = linked.map(x => x.id);
+    setSessions(prev => prev.filter(x => !idsToCancel.includes(x.id)));
+    await Promise.all(idsToCancel.map(deleteSession));
     setConfirmingCancel(null);
-    showToast('Session cancelled');
+    showToast(idsToCancel.length > 1 ? 'Split session cancelled (both parts)' : 'Session cancelled');
   }
 
   // ===== BOOK SESSION =====
   async function bookSession(date, hour, min) {
-    const s = {
-      id: genId(),
-      date,
-      start_hour: hour,
-      start_min: min,
-      duration: focusSettings.duration,
+    const duration = focusSettings.duration;
+    const startMins = hour * 60 + min;
+    const endMins = startMins + duration;
+    const common = {
       task: focusSettings.task || 'desk',
       tag: focusSettings.tag || null,
       status: 'booked',
       notes: '',
     };
-    // Optimistically add to UI immediately
-    setSessions(prev => [...prev, s]);
-    setSelectedSlot(null);
-    showToast(`⚡ Booked ${getTimeLabel(hour, min)} — ${focusSettings.duration}min`);
-    // Save to DB in background
-    await saveSession(s);
-    scheduleAutostarts([...sessions, s], focusSettings);
+
+    if (endMins > 1440) {
+      // Session overflows past midnight — split into two linked sessions
+      const linkedId = genId();
+      const day1Duration = 1440 - startMins; // minutes until midnight
+      const day2Duration = duration - day1Duration; // minutes into next day
+
+      // Compute next day's date
+      const [yr, mo, dy] = date.split('-').map(Number);
+      const nextDay = new Date(yr, mo - 1, dy + 1);
+      const nextDate = getDateKey(nextDay);
+
+      const s1 = { ...common, id: genId(), date, start_hour: hour, start_min: min, duration: day1Duration, linked_id: linkedId };
+      const s2 = { ...common, id: genId(), date: nextDate, start_hour: 0, start_min: 0, duration: day2Duration, linked_id: linkedId };
+
+      setSessions(prev => [...prev, s1, s2]);
+      setSelectedSlot(null);
+      showToast(`⚡ Booked ${getTimeLabel(hour, min)} — ${duration}min (splits midnight)`);
+      await Promise.all([saveSession(s1), saveSession(s2)]);
+      scheduleAutostarts([...sessions, s1, s2], focusSettings);
+    } else {
+      // Normal single-day session
+      const s = { ...common, id: genId(), date, start_hour: hour, start_min: min, duration, linked_id: null };
+      setSessions(prev => [...prev, s]);
+      setSelectedSlot(null);
+      showToast(`⚡ Booked ${getTimeLabel(hour, min)} — ${duration}min`);
+      await saveSession(s);
+      scheduleAutostarts([...sessions, s], focusSettings);
+    }
   }
 
   // ===== MODAL =====
@@ -212,14 +237,20 @@ export default function App() {
   }
 
   async function deleteModalSession(id) {
-    setSessions(prev => prev.filter(x => x.id !== id));
-    if (sessionTimersRef.current[id]) {
-      clearTimeout(sessionTimersRef.current[id]);
-      delete sessionTimersRef.current[id];
-    }
-    await deleteSession(id);
+    // If this session is part of a linked pair (midnight overflow), delete both
+    const s = sessions.find(x => x.id === id);
+    const linked = s?.linked_id ? sessions.filter(x => x.linked_id === s.linked_id) : [s];
+    const idsToDelete = linked.map(x => x.id);
+    setSessions(prev => prev.filter(x => !idsToDelete.includes(x.id)));
+    idsToDelete.forEach(sid => {
+      if (sessionTimersRef.current[sid]) {
+        clearTimeout(sessionTimersRef.current[sid]);
+        delete sessionTimersRef.current[sid];
+      }
+    });
+    await Promise.all(idsToDelete.map(deleteSession));
     setModalSessionId(null);
-    showToast('Session removed');
+    showToast(idsToDelete.length > 1 ? 'Split session removed (both parts)' : 'Session removed');
   }
 
   // ===== AUTOSTART =====

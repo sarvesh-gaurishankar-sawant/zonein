@@ -195,6 +195,12 @@ export default function CalendarView({
                             {sTag && (
                               <div className="session-tag" style={{ background: sTag.color + '33', color: sTag.color }}>{sTag.name}</div>
                             )}
+                            {s.linked_id && s.start_hour === 0 && s.start_min === 0 && (
+                              <div style={{ fontSize: 7, color: 'var(--accent)', opacity: 0.8, marginTop: 2 }}>↑ from prev day</div>
+                            )}
+                            {s.linked_id && !(s.start_hour === 0 && s.start_min === 0) && (
+                              <div style={{ fontSize: 7, color: 'var(--accent)', opacity: 0.8, marginTop: 2 }}>↓ continues next day</div>
+                            )}
                             {hasActions && (
                               <div className="session-actions">
                                 {s.status === 'booked' && (
