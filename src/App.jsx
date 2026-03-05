@@ -155,8 +155,8 @@ export default function App() {
       return updated;
     });
 
-    // Only show break overlay if this is NOT a split session continuing into the next part
-    if (auto && focusSettings.autostartBreaks && !linkedPartner) {
+    // Show break overlay unless this is a split session continuing into the next part
+    if (!linkedPartner) {
       setTimeout(() => setBreakVisible(true), 500);
     }
 
