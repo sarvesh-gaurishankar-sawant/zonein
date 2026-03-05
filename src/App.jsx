@@ -37,7 +37,6 @@ export default function App() {
   const { toast, showToast, dismissToast } = useToast();
 
   const [view, setView] = useState('calendar');
-  const [tabVisits, setTabVisits] = useState({ calendar: 1, inbox: 0, tags: 0, stats: 0, settings: 0 });
   const [calOffset, setCalOffset] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [confirmingCancel, setConfirmingCancel] = useState(null);

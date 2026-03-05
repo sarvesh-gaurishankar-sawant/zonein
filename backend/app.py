@@ -1,7 +1,7 @@
 import os
 import json
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
@@ -230,20 +230,62 @@ def build_sessions(user_id, parsed, booked_today, default_duration, tz=None):
     current_m = start_min
 
     for i in range(num_sessions):
-        session_id = str(uuid.uuid4())
-        sessions_to_book.append({
-            "id": session_id,
-            "user_id": user_id,
-            "date": target_date,
-            "start_hour": current_h,
-            "start_min": current_m,
-            "duration": duration,
-            "task": "desk",
-            "tag": tag_id,
-            "status": "booked",
-            "started_at": None,
-            "notes": None,
-        })
+        start_total = current_h * 60 + current_m
+        end_total = start_total + duration
+
+        if end_total > 1440:
+            # Session overflows past midnight — split into two linked sessions
+            linked_id = str(uuid.uuid4())
+            day1_duration = 1440 - start_total  # minutes until midnight
+            day2_duration = duration - day1_duration  # minutes into next day
+
+            # Compute next day's date
+            current_date_obj = datetime.strptime(target_date, "%Y-%m-%d")
+            next_date = (current_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
+
+            sessions_to_book.append({
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "date": target_date,
+                "start_hour": current_h,
+                "start_min": current_m,
+                "duration": day1_duration,
+                "task": "desk",
+                "tag": tag_id,
+                "status": "booked",
+                "started_at": None,
+                "notes": None,
+                "linked_id": linked_id,
+            })
+            sessions_to_book.append({
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "date": next_date,
+                "start_hour": 0,
+                "start_min": 0,
+                "duration": day2_duration,
+                "task": "desk",
+                "tag": tag_id,
+                "status": "booked",
+                "started_at": None,
+                "notes": None,
+                "linked_id": linked_id,
+            })
+        else:
+            sessions_to_book.append({
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "date": target_date,
+                "start_hour": current_h,
+                "start_min": current_m,
+                "duration": duration,
+                "task": "desk",
+                "tag": tag_id,
+                "status": "booked",
+                "started_at": None,
+                "notes": None,
+                "linked_id": None,
+            })
 
         # Advance time for next session
         total_mins = current_h * 60 + current_m + duration + break_mins
