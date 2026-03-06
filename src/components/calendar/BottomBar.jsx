@@ -19,8 +19,8 @@ export default function BottomBar({ focusSettings, setFocusSettings, saveSetting
     if (isCustomDuration) setCustomDur(String(focusSettings.duration));
   }, [focusSettings.duration]);
 
-  const applyCustomDur = () => {
-    const val = parseInt(customDur, 10);
+  const applyCustomDur = (raw) => {
+    const val = parseInt(raw !== undefined ? raw : customDur, 10);
     if (!val || val < 1 || val > 480) return;
     setFocusSettings(s => ({ ...s, duration: val }));
     saveSettings({ ...focusSettings, duration: val });
@@ -130,8 +130,8 @@ export default function BottomBar({ focusSettings, setFocusSettings, saveSetting
           max={480}
           placeholder="?"
           value={customDur}
-          onChange={e => setCustomDur(e.target.value)}
-          onBlur={applyCustomDur}
+          onChange={e => { setCustomDur(e.target.value); applyCustomDur(e.target.value); }}
+          onBlur={() => applyCustomDur()}
           onKeyDown={e => e.key === 'Enter' && applyCustomDur()}
           title="Custom duration (min)"
         />

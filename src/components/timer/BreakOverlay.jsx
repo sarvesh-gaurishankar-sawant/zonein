@@ -117,7 +117,10 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
                 <span className="break-opt-label">minutes</span>
               </button>
             ))}
-            <div className="break-opt-btn break-custom-wrap" style={{ cursor: 'default' }}>
+            <div
+              className={`break-opt-btn break-custom-wrap${customBreak && parseInt(customBreak,10) >= 1 && parseInt(customBreak,10) <= 120 ? ' active' : ''}`}
+              style={{ cursor: 'default' }}
+            >
               <input
                 className="break-custom-input"
                 type="number"
@@ -125,7 +128,11 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
                 max={120}
                 placeholder="?"
                 value={customBreak}
-                onChange={e => setCustomBreak(e.target.value)}
+                onChange={e => {
+                  setCustomBreak(e.target.value);
+                  const val = parseInt(e.target.value, 10);
+                  if (val && val >= 1 && val <= 120) startBreak(val);
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     const val = parseInt(customBreak, 10);
@@ -133,14 +140,7 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
                   }
                 }}
               />
-              <span className="break-opt-label">minutes</span>
-              <button
-                className="break-custom-go"
-                onClick={() => {
-                  const val = parseInt(customBreak, 10);
-                  if (val && val >= 1 && val <= 120) startBreak(val);
-                }}
-              >→</button>
+              <span className="break-opt-label">min</span>
             </div>
           </div>
           <button className="break-skip-btn" onClick={() => onDismiss(false, moodRef.current)}>Skip, keep going →</button>

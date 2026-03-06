@@ -141,7 +141,11 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
               max={120}
               placeholder={isCustomBreak ? String(s.breakDuration) : '?'}
               value={customBreak}
-              onChange={e => setCustomBreak(e.target.value)}
+              onChange={e => {
+                setCustomBreak(e.target.value);
+                const val = parseInt(e.target.value, 10);
+                if (val && val >= 1 && val <= 120) setBreakDuration(val);
+              }}
               onBlur={() => {
                 const val = parseInt(customBreak, 10);
                 if (val && val >= 1 && val <= 120) setBreakDuration(val);
@@ -181,7 +185,11 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
               max={480}
               placeholder={isCustomDuration ? String(s.duration) : '?'}
               value={customDur}
-              onChange={e => setCustomDur(e.target.value)}
+              onChange={e => {
+                setCustomDur(e.target.value);
+                const val = parseInt(e.target.value, 10);
+                if (val && val >= 1 && val <= 480) setDuration(val);
+              }}
               onBlur={() => {
                 const val = parseInt(customDur, 10);
                 if (val && val >= 1 && val <= 480) setDuration(val);

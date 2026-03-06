@@ -664,29 +664,29 @@
 /* ===== CUSTOM BREAK INPUT (BreakOverlay) ===== */
 .break-custom-wrap {
   display: flex; flex-direction: column; align-items: center;
-  gap: 4px; position: relative;
+  gap: 2px; cursor: text !important;
 }
+.break-custom-wrap.active {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  box-shadow: 2px 2px 0px #333 !important;
+  transform: translate(2px,2px);
+}
+.break-custom-wrap.active .break-opt-num,
+.break-custom-wrap.active .break-custom-input { color: #000 !important; }
+.break-custom-wrap.active .break-opt-label { color: #000 !important; }
 .break-custom-input {
   width: 54px; height: 36px;
   text-align: center;
-  font-size: 20px; font-weight: 900; font-family: inherit;
+  font-size: 26px; font-weight: 900; font-family: inherit;
   background: transparent; color: var(--accent);
   border: none; outline: none;
   -moz-appearance: textfield;
+  cursor: text;
 }
 .break-custom-input::-webkit-outer-spin-button,
 .break-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .break-custom-input::placeholder { color: var(--border-light); }
-.break-custom-go {
-  position: absolute; bottom: -8px; right: -8px;
-  width: 22px; height: 22px;
-  border: 1px solid var(--border-light); background: var(--bg-surface);
-  color: var(--text-muted); font-size: 11px; font-weight: 800;
-  cursor: pointer; font-family: inherit;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.1s;
-}
-.break-custom-go:hover { background: var(--accent); color: #000; border-color: var(--accent); }
 
 /* ===== MOOD PICKER ===== */
 .mood-picker {
