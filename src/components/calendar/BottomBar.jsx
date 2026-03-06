@@ -127,7 +127,7 @@ export default function BottomBar({ focusSettings, setFocusSettings, saveSetting
           className={`dur-custom-input${isCustomDuration ? ' active' : ''}`}
           type="text"
           inputMode="numeric"
-          placeholder="?"
+          placeholder="custom"
           value={customDur}
           onChange={e => { setCustomDur(e.target.value); applyCustomDur(e.target.value); }}
           onBlur={() => applyCustomDur()}
