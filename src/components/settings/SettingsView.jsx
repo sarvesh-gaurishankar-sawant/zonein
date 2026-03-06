@@ -138,7 +138,7 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
             <input
               type="text"
               inputMode="numeric"
-              placeholder={isCustomBreak ? String(s.breakDuration) : 'custom'}
+              placeholder={isCustomBreak ? String(s.breakDuration) : '?'}
               value={customBreak}
               onChange={e => {
                 const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -158,7 +158,7 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
               }}
               style={{
                 ...pillBtnStyle(isCustomBreak),
-                width: 60, textAlign: 'center',
+                width: 44, textAlign: 'center',
                 outline: 'none', cursor: 'text',
               }}
             />
@@ -179,7 +179,7 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
             <input
               type="text"
               inputMode="numeric"
-              placeholder={isCustomDuration ? String(s.duration) : 'custom'}
+              placeholder={isCustomDuration ? String(s.duration) : '?'}
               value={customDur}
               onChange={e => {
                 const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -199,7 +199,7 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
               }}
               style={{
                 ...pillBtnStyle(isCustomDuration),
-                width: 60, textAlign: 'center',
+                width: 44, textAlign: 'center',
                 outline: 'none', cursor: 'text',
               }}
             />
