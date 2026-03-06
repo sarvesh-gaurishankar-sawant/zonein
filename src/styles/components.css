@@ -520,8 +520,8 @@
   .cal-card { margin: 0; flex: 1; min-height: 0; }
   .cal-time-row { height: 14px !important; min-height: 14px !important; max-height: 14px !important; }
   .cal-slot { height: 14px !important; min-height: 14px !important; max-height: 14px !important; }
-  .slot-popup-btn { padding: 10px 6px; font-size: 12px; }
-  .slot-popup { padding: 6px; gap: 6px; }
+  .slot-popup-btn { padding: 10px 6px; font-size: 12px; min-height: 48px; }
+  .slot-popup { padding: 0; gap: 0; }
   .cal-time-label { font-size: 8px; }
   .ai-section { padding-bottom: 6px; margin-bottom: 2px; }
   .ai-inline-input { font-size: 13px; height: 38px; }

@@ -16,6 +16,7 @@ export default function CalendarView({
   const scrollRef = useRef(null);
   const [mobile, setMobile] = useState(isMobile());
   const [hoverPreview, setHoverPreview] = useState(null);
+  const [popupRect, setPopupRect] = useState(null);
 
   useEffect(() => {
     const onResize = () => setMobile(isMobile());
@@ -97,9 +98,9 @@ export default function CalendarView({
       <div className="cal-header">
         <div className="cal-title">{rangeLabel}</div>
         <div className="cal-nav-group">
-          <button className="cal-nav" onClick={() => { setCalOffset((o) => o - 1); setSelectedSlot(null); }}>‹</button>
-          <button className="cal-today-btn" onClick={() => { setCalOffset(0); setSelectedSlot(null); }}>Today</button>
-          <button className="cal-nav" onClick={() => { setCalOffset((o) => o + 1); setSelectedSlot(null); }}>›</button>
+          <button className="cal-nav" onClick={() => { setCalOffset((o) => o - 1); setSelectedSlot(null); setPopupRect(null); }}>‹</button>
+          <button className="cal-today-btn" onClick={() => { setCalOffset(0); setSelectedSlot(null); setPopupRect(null); }}>Today</button>
+          <button className="cal-nav" onClick={() => { setCalOffset((o) => o + 1); setSelectedSlot(null); setPopupRect(null); }}>›</button>
         </div>
       </div>
 
@@ -150,8 +151,16 @@ export default function CalendarView({
 
                 if (isSel && !hasS) {
                   const popH = Math.round((focusSettings.duration / 5) * rowH) - 2;
+                  const fixedStyle = mobile && popupRect ? {
+                    position: 'fixed',
+                    top: popupRect.top,
+                    left: popupRect.left,
+                    width: popupRect.width,
+                    height: 48,
+                    zIndex: 999,
+                  } : { height: popH };
                   sc = (
-                    <div className="slot-popup" style={{ height: popH }}>
+                    <div className="slot-popup" style={fixedStyle}>
                       {past ? (
                         <button className="slot-popup-btn book" onClick={() => onLogDone(dk, h, m)}>
                           ✓ Log {focusSettings.duration}min
@@ -161,7 +170,7 @@ export default function CalendarView({
                           Book {focusSettings.duration}min
                         </button>
                       )}
-                      <button className="slot-popup-btn clear" onClick={() => setSelectedSlot(null)}>Clear</button>
+                      <button className="slot-popup-btn clear" onClick={() => { setSelectedSlot(null); setPopupRect(null); }}>✕</button>
                     </div>
                   );
                 } else if (hasS) {
@@ -238,6 +247,8 @@ export default function CalendarView({
                     onClick={!hasS && !covered ? (e) => {
                       if (isSel) return; // let popup button clicks go through
                       setConfirmingCancel(null);
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setPopupRect(rect);
                       setSelectedSlot((prev) =>
                         prev?.date === dk && prev?.hour === h && prev?.min === m ? null : { date: dk, hour: h, min: m }
                       );
