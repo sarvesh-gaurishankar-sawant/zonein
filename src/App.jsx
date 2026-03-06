@@ -9,7 +9,6 @@ import { supabase } from './lib/supabase';
 import NavBar from './components/shared/NavBar';
 import Toast from './components/shared/Toast';
 import NotifPopup from './components/shared/NotifPopup';
-import SessionCompanion, { postCompanionLog } from './components/shared/SessionCompanion';
 import LoginScreen from './components/auth/LoginScreen';
 import BreakOverlay from './components/timer/BreakOverlay';
 import CalendarView from './components/calendar/CalendarView';
@@ -43,13 +42,6 @@ export default function App() {
   const [modalSessionId, setModalSessionId] = useState(null);
   const [notif, setNotif] = useState({ visible: false, title: '', body: '' });
   const [breakVisible, setBreakVisible] = useState(false);
-
-  // ===== COMPANION =====
-  const [companionPhase, setCompanionPhase] = useState(null); // 'start' | 'end-check' | 'proactive'
-  const [companionSessionId, setCompanionSessionId] = useState(null);
-  const [companionMeta, setCompanionMeta] = useState(null); // { tagName, duration, tagId }
-  const companionGoalRef = useRef(null); // goal set at session start
-  const proactiveShownRef = useRef(false); // only show proactive once per session
 
   // Timer refs
   const sessionTimersRef = useRef({});
@@ -127,12 +119,6 @@ export default function App() {
     playStartChime();
     showToast('Session started! 🔥');
     scheduleAutostarts(updated, focusSettings);
-    // Show companion check-in
-    companionGoalRef.current = null;
-    setCompanionSessionId(id);
-    const sTag = s.tag ? tags.find(t => t.id === s.tag) : null;
-    setCompanionMeta({ tagName: sTag?.name || '', duration: s.duration, tagId: s.tag || null });
-    setCompanionPhase('start');
   }
   // Assign inline (during render) so the ref is always current when a timer fires
   startSessionRef.current = startSession;
@@ -169,21 +155,6 @@ export default function App() {
       delete sessionTimersRef.current[id];
     }
 
-    // Only show companion end check-in if this is NOT the first part of a split session
-    // (we'll show it when the real final part completes)
-    setSessions(prevForMeta => {
-      const s = prevForMeta.find(x => x.id === id);
-      const linkedPartner = s?.linked_id
-        ? prevForMeta.find(x => x.linked_id === s.linked_id && x.id !== s.id && x.status === 'booked')
-        : null;
-      if (s && !linkedPartner) {
-        setCompanionSessionId(id);
-        const sTag = s.tag ? tags.find(t => t.id === s.tag) : null;
-        setCompanionMeta({ tagName: sTag?.name || '', duration: s.duration, tagId: s.tag || null });
-        setCompanionPhase('end-check');
-      }
-      return prevForMeta;
-    });
   }
 
   async function cancelSession(id) {
@@ -347,16 +318,6 @@ export default function App() {
     if (dataLoaded && sessions.length > 0) {
       restoreActiveTimers(sessions);
       scheduleAutostarts(sessions, focusSettings);
-    }
-    // Phase 3: Proactive greeting — show once after data loads
-    if (dataLoaded && !proactiveShownRef.current) {
-      proactiveShownRef.current = true;
-      setTimeout(() => {
-        setCompanionMeta(null);
-        setCompanionSessionId(null);
-        companionGoalRef.current = null;
-        setCompanionPhase('proactive');
-      }, 1500); // slight delay so UI settles first
     }
   }, [dataLoaded]);
 
@@ -545,24 +506,6 @@ export default function App() {
       <Toast toast={toast} onDismiss={dismissToast} />
       <NotifPopup notif={notif} onDismiss={() => setNotif(n => ({ ...n, visible: false }))} />
 
-      <SessionCompanion
-        phase={companionPhase}
-        sessionGoal={companionGoalRef.current}
-        sessionMeta={companionMeta}
-        onGoalSet={goal => { companionGoalRef.current = goal; }}
-        onCheckin={did => {
-          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          postCompanionLog({
-            sessionId: companionSessionId,
-            goal: companionGoalRef.current,
-            completed: did,
-            tagId: companionMeta?.tagId || null,
-            duration: companionMeta?.duration || focusSettings.duration,
-            timezone,
-          });
-        }}
-        onDismiss={() => { setCompanionPhase(null); setCompanionSessionId(null); setCompanionMeta(null); }}
-      />
     </div>
   );
 }
