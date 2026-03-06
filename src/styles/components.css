@@ -238,7 +238,9 @@
   background: var(--bg-card); border-top: 1px solid var(--border);
   margin-top: 8px; flex-shrink: 0; order: 3;
 }
-.duration-row { display: flex; gap: 6px; align-items: center; }
+.duration-row { display: flex; gap: 6px; align-items: stretch; }
+.duration-row .dur-label { align-self: center; }
+.duration-row .tag-sel-btn { align-self: center; }
 .dur-label { font-size: 10px; color: var(--text-muted); font-weight: 800; margin-right: 4px; white-space: nowrap; letter-spacing: 1px; text-transform: uppercase; }
 .dur-btn {
   flex: 1; padding: 6px 0; border: 1px solid var(--border); background: var(--bg-surface);
@@ -646,7 +648,7 @@
 
 /* ===== CUSTOM DURATION INPUT (BottomBar) ===== */
 .dur-custom-input {
-  flex: 1; padding: 6px 0;
+  flex: 1; padding: 0;
   text-align: center;
   font-size: 13px; font-weight: 800; font-family: inherit;
   background: var(--bg-surface); color: var(--text-secondary);
