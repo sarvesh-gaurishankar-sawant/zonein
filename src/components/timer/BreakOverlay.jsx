@@ -36,6 +36,7 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
   const [msLeft, setMsLeft] = useState(0);
   const [totalMs, setTotalMs] = useState(0);
   const [mood, setMood] = useState(null);
+  const moodRef = useRef(null); // ref so timer closures always read latest mood
   const endTimeRef = useRef(null);
   const intervalRef = useRef(null);
   const timerRef = useRef(null);
@@ -43,6 +44,7 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
   useEffect(() => {
     if (!visible) return;
     setMood(null);
+    moodRef.current = null;
     if (autostartBreaks) {
       startBreak(breakDuration || 5);
     } else {
@@ -83,9 +85,10 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timerRef.current) clearTimeout(timerRef.current);
     document.title = 'ZoneIn - Focus Session Calendar';
-    onDismiss(auto, mood);
+    onDismiss(auto, moodRef.current); // use ref so stale closures always get latest mood
     setPhase('prompt');
     setMood(null);
+    moodRef.current = null;
   };
 
   if (!visible) return null;
@@ -102,7 +105,7 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
           <div className="break-prompt-emoji">☕</div>
           <div className="break-prompt-title">Session Complete!</div>
           <div className="break-prompt-sub">You crushed it. Take a moment to rest — your brain will thank you.</div>
-          <MoodPicker selected={mood} onSelect={setMood} />
+          <MoodPicker selected={mood} onSelect={v => { setMood(v); moodRef.current = v; }} />
           <div className="break-prompt-options">
             {[5, 10, 15].map((m) => (
               <button key={m} className="break-opt-btn" onClick={() => startBreak(m)}>
@@ -111,7 +114,7 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
               </button>
             ))}
           </div>
-          <button className="break-skip-btn" onClick={() => onDismiss(false, mood)}>Skip, keep going →</button>
+          <button className="break-skip-btn" onClick={() => onDismiss(false, moodRef.current)}>Skip, keep going →</button>
         </div>
       ) : (
         <div className="break-timer-screen">
@@ -124,7 +127,7 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
             </div>
           </div>
           <div className="break-timer-hint">Breathe. Stretch. Hydrate. 🌿</div>
-          <MoodPicker selected={mood} onSelect={setMood} />
+          <MoodPicker selected={mood} onSelect={v => { setMood(v); moodRef.current = v; }} />
           <div className="break-progress-track">
             <div className="break-progress-bar" style={{ width: `${progressPct}%` }} />
           </div>
