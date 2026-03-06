@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { getTimeLabel, isSlotPast } from '../../lib/utils';
 import { FLASK_URL } from '../../lib/constants';
 import { supabase } from '../../lib/supabase';
@@ -7,8 +7,24 @@ export default function BottomBar({ focusSettings, setFocusSettings, saveSetting
   const [bbExpanded, setBbExpanded] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState({ visible: false, type: '', msg: '' });
+  const [customDur, setCustomDur] = useState('');
   const aiInputRef = useRef(null);
   const aiResultTimeout = useRef(null);
+
+  const PRESET_DURATIONS = [25, 50, 75];
+  const isCustomDuration = !PRESET_DURATIONS.includes(focusSettings.duration);
+
+  // Keep custom input in sync when a preset is selected
+  useEffect(() => {
+    if (isCustomDuration) setCustomDur(String(focusSettings.duration));
+  }, [focusSettings.duration]);
+
+  const applyCustomDur = () => {
+    const val = parseInt(customDur, 10);
+    if (!val || val < 1 || val > 480) return;
+    setFocusSettings(s => ({ ...s, duration: val }));
+    saveSettings({ ...focusSettings, duration: val });
+  };
 
   const selTag = focusSettings.tag ? tags.find((t) => t.id === focusSettings.tag) : null;
   const slotIsPast = selectedSlot ? isSlotPast(selectedSlot.date, selectedSlot.hour, selectedSlot.min) : false;
@@ -98,15 +114,27 @@ export default function BottomBar({ focusSettings, setFocusSettings, saveSetting
 
       <div className="duration-row">
         <span className="dur-label">Duration</span>
-        {[25, 50, 75].map((d) => (
+        {PRESET_DURATIONS.map((d) => (
           <button
             key={d}
             className={`dur-btn${focusSettings.duration === d ? ' active' : ''}`}
-            onClick={() => { setFocusSettings((s) => ({ ...s, duration: d })); saveSettings({ ...focusSettings, duration: d }); }}
+            onClick={() => { setCustomDur(''); setFocusSettings((s) => ({ ...s, duration: d })); saveSettings({ ...focusSettings, duration: d }); }}
           >
             {d}<span>min</span>
           </button>
         ))}
+        <input
+          className={`dur-custom-input${isCustomDuration ? ' active' : ''}`}
+          type="number"
+          min={1}
+          max={480}
+          placeholder="?"
+          value={customDur}
+          onChange={e => setCustomDur(e.target.value)}
+          onBlur={applyCustomDur}
+          onKeyDown={e => e.key === 'Enter' && applyCustomDur()}
+          title="Custom duration (min)"
+        />
       </div>
 
       {tags.length > 0 && (

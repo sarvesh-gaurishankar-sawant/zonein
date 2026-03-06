@@ -1,8 +1,16 @@
 import { useState } from 'react';
 
+const PRESET_DURATIONS = [25, 50, 75];
+const PRESET_BREAKS = [5, 10, 15];
+
 export default function SettingsView({ focusSettings, setFocusSettings, saveSettings, user, showToast }) {
   const [initialInput, setInitialInput] = useState(focusSettings.initial || '');
+  const [customDur, setCustomDur] = useState('');
+  const [customBreak, setCustomBreak] = useState('');
   const s = focusSettings;
+
+  const isCustomDuration = !PRESET_DURATIONS.includes(s.duration);
+  const isCustomBreak = !PRESET_BREAKS.includes(s.breakDuration);
 
   const toggle = async (key) => {
     const updated = { ...focusSettings, [key]: !focusSettings[key] };
@@ -119,14 +127,40 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
         <div style={rowStyle}>
           <div>
             <div style={settingTitleStyle}>Default break duration</div>
-            <div style={settingDescStyle}>Default break length</div>
+            <div style={settingDescStyle}>Used when autostart breaks is on</div>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[5, 10, 15].map(d => (
-              <button key={d} style={pillBtnStyle(s.breakDuration === d)} onClick={() => setBreakDuration(d)}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {PRESET_BREAKS.map(d => (
+              <button key={d} style={pillBtnStyle(s.breakDuration === d)} onClick={() => { setCustomBreak(''); setBreakDuration(d); }}>
                 {d}m
               </button>
             ))}
+            <input
+              type="number"
+              min={1}
+              max={120}
+              placeholder={isCustomBreak ? String(s.breakDuration) : '?'}
+              value={customBreak}
+              onChange={e => setCustomBreak(e.target.value)}
+              onBlur={() => {
+                const val = parseInt(customBreak, 10);
+                if (val && val >= 1 && val <= 120) setBreakDuration(val);
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const val = parseInt(customBreak, 10);
+                  if (val && val >= 1 && val <= 120) { setBreakDuration(val); e.target.blur(); }
+                }
+              }}
+              style={{
+                width: 44, height: 30, textAlign: 'center',
+                fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
+                background: isCustomBreak && !customBreak ? 'var(--accent)' : 'var(--bg-surface)',
+                color: isCustomBreak && !customBreak ? '#000' : 'var(--text-primary)',
+                border: `1px solid ${isCustomBreak && !customBreak ? 'var(--accent)' : 'var(--border)'}`,
+                outline: 'none', borderRadius: 999,
+              }}
+            />
           </div>
         </div>
 
@@ -135,12 +169,38 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
             <div style={settingTitleStyle}>Default duration</div>
             <div style={settingDescStyle}>Default session length when booking</div>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {[25, 50, 75].map(d => (
-              <button key={d} style={pillBtnStyle(s.duration === d)} onClick={() => setDuration(d)}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {PRESET_DURATIONS.map(d => (
+              <button key={d} style={pillBtnStyle(s.duration === d)} onClick={() => { setCustomDur(''); setDuration(d); }}>
                 {d}m
               </button>
             ))}
+            <input
+              type="number"
+              min={1}
+              max={480}
+              placeholder={isCustomDuration ? String(s.duration) : '?'}
+              value={customDur}
+              onChange={e => setCustomDur(e.target.value)}
+              onBlur={() => {
+                const val = parseInt(customDur, 10);
+                if (val && val >= 1 && val <= 480) setDuration(val);
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const val = parseInt(customDur, 10);
+                  if (val && val >= 1 && val <= 480) { setDuration(val); e.target.blur(); }
+                }
+              }}
+              style={{
+                width: 44, height: 30, textAlign: 'center',
+                fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
+                background: isCustomDuration && !customDur ? 'var(--accent)' : 'var(--bg-surface)',
+                color: isCustomDuration && !customDur ? '#000' : 'var(--text-primary)',
+                border: `1px solid ${isCustomDuration && !customDur ? 'var(--accent)' : 'var(--border)'}`,
+                outline: 'none', borderRadius: 999,
+              }}
+            />
           </div>
         </div>
       </div>

@@ -30,9 +30,12 @@ function MoodPicker({ selected, onSelect }) {
   );
 }
 
+const PRESET_BREAKS = [5, 10, 15];
+
 export default function BreakOverlay({ visible, onDismiss, autostartBreaks, breakDuration }) {
   const [phase, setPhase] = useState('prompt'); // 'prompt' | 'timer'
   const [breakMins, setBreakMins] = useState(5);
+  const [customBreak, setCustomBreak] = useState('');
   const [msLeft, setMsLeft] = useState(0);
   const [totalMs, setTotalMs] = useState(0);
   const [mood, setMood] = useState(null);
@@ -45,6 +48,7 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
     if (!visible) return;
     setMood(null);
     moodRef.current = null;
+    setCustomBreak('');
     if (autostartBreaks) {
       startBreak(breakDuration || 5);
     } else {
@@ -107,12 +111,37 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
           <div className="break-prompt-sub">You crushed it. Take a moment to rest — your brain will thank you.</div>
           <MoodPicker selected={mood} onSelect={v => { setMood(v); moodRef.current = v; }} />
           <div className="break-prompt-options">
-            {[5, 10, 15].map((m) => (
-              <button key={m} className="break-opt-btn" onClick={() => startBreak(m)}>
+            {PRESET_BREAKS.map((m) => (
+              <button key={m} className="break-opt-btn" onClick={() => { setCustomBreak(''); startBreak(m); }}>
                 <span className="break-opt-num">{m}</span>
                 <span className="break-opt-label">minutes</span>
               </button>
             ))}
+            <div className="break-opt-btn break-custom-wrap" style={{ cursor: 'default' }}>
+              <input
+                className="break-custom-input"
+                type="number"
+                min={1}
+                max={120}
+                placeholder="?"
+                value={customBreak}
+                onChange={e => setCustomBreak(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const val = parseInt(customBreak, 10);
+                    if (val && val >= 1 && val <= 120) startBreak(val);
+                  }
+                }}
+              />
+              <span className="break-opt-label">minutes</span>
+              <button
+                className="break-custom-go"
+                onClick={() => {
+                  const val = parseInt(customBreak, 10);
+                  if (val && val >= 1 && val <= 120) startBreak(val);
+                }}
+              >→</button>
+            </div>
           </div>
           <button className="break-skip-btn" onClick={() => onDismiss(false, moodRef.current)}>Skip, keep going →</button>
         </div>

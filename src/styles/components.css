@@ -644,6 +644,50 @@
   .companion-card { width: 100%; }
 }
 
+/* ===== CUSTOM DURATION INPUT (BottomBar) ===== */
+.dur-custom-input {
+  width: 44px; height: 34px;
+  text-align: center;
+  font-size: 12px; font-weight: 800; font-family: inherit;
+  background: var(--bg-surface); color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  outline: none; transition: all 0.1s;
+  -moz-appearance: textfield;
+}
+.dur-custom-input::-webkit-outer-spin-button,
+.dur-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.dur-custom-input:focus { border-color: var(--accent); color: var(--text-primary); }
+.dur-custom-input.active { background: var(--accent); border-color: var(--accent); color: #000; box-shadow: 3px 3px 0 #000; }
+.dur-custom-input::placeholder { color: var(--text-muted); font-weight: 700; }
+
+/* ===== CUSTOM BREAK INPUT (BreakOverlay) ===== */
+.break-custom-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; position: relative;
+}
+.break-custom-input {
+  width: 54px; height: 36px;
+  text-align: center;
+  font-size: 20px; font-weight: 900; font-family: inherit;
+  background: transparent; color: var(--accent);
+  border: none; outline: none;
+  -moz-appearance: textfield;
+}
+.break-custom-input::-webkit-outer-spin-button,
+.break-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.break-custom-input::placeholder { color: var(--border-light); }
+.break-custom-go {
+  position: absolute; bottom: -8px; right: -8px;
+  width: 22px; height: 22px;
+  border: 1px solid var(--border-light); background: var(--bg-surface);
+  color: var(--text-muted); font-size: 11px; font-weight: 800;
+  cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.break-custom-go:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
 /* ===== MOOD PICKER ===== */
 .mood-picker {
   margin: 14px 0 4px;
