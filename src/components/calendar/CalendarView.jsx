@@ -156,7 +156,7 @@ export default function CalendarView({
                     top: popupRect.top,
                     left: popupRect.left,
                     width: popupRect.width,
-                    height: 48,
+                    height: Math.max(popH, 48),
                     zIndex: 999,
                   } : { height: popH };
                   sc = (
