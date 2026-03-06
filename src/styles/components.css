@@ -643,3 +643,69 @@
   .companion-overlay { padding: 12px; }
   .companion-card { width: 100%; }
 }
+
+/* ===== MOOD PICKER ===== */
+.mood-picker {
+  margin: 14px 0 4px;
+  text-align: center;
+}
+.mood-picker-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.mood-picker-options {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.mood-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: inherit;
+}
+.mood-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+.mood-btn.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 2px 2px 0 #000;
+}
+.mood-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+.mood-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.mood-btn.selected .mood-label {
+  color: #000;
+}
+/* Smaller variant for inside the modal */
+.modal-mood-btn {
+  padding: 5px 8px;
+}
+.modal-mood-btn .mood-emoji {
+  font-size: 15px;
+}
+.modal-mood-btn .mood-label {
+  font-size: 8px;
+}

@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { getTimeLabel } from '../../lib/utils';
+import { MOODS } from '../timer/BreakOverlay';
 
 export default function SessionModal({ session, tags, onClose, onSave, onDelete }) {
   const [notes, setNotes] = useState('');
   const [selectedTag, setSelectedTag] = useState(null);
+  const [selectedMood, setSelectedMood] = useState(null);
 
   useEffect(() => {
     if (session) {
       setNotes(session.notes || '');
       setSelectedTag(session.tag || null);
+      setSelectedMood(session.mood || null);
     }
   }, [session]);
 
@@ -20,7 +23,7 @@ export default function SessionModal({ session, tags, onClose, onSave, onDelete 
     session.status === 'booked' ? 'Booked' : session.status;
 
   const handleSave = () => {
-    onSave({ ...session, notes: notes.trim(), tag: selectedTag });
+    onSave({ ...session, notes: notes.trim(), tag: selectedTag, mood: selectedMood || null });
   };
 
   return (
@@ -53,6 +56,20 @@ export default function SessionModal({ session, tags, onClose, onSave, onDelete 
           {tags.length === 0 && (
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>No tags yet — create some in the Tags tab</span>
           )}
+        </div>
+        <div className="modal-field-label" style={{ marginBottom: 6 }}>Mood</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          {MOODS.map(m => (
+            <button
+              key={m.id}
+              className={`mood-btn modal-mood-btn${selectedMood === m.id ? ' selected' : ''}`}
+              onClick={() => setSelectedMood(selectedMood === m.id ? null : m.id)}
+              title={m.label}
+            >
+              <span className="mood-emoji">{m.emoji}</span>
+              <span className="mood-label">{m.label}</span>
+            </button>
+          ))}
         </div>
         <div className="modal-field-label">What did you work on?</div>
         <textarea

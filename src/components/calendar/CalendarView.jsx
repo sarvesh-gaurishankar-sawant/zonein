@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getDateKey, getHourLabel, getTimeLabel, isMobile, isSlotPast, genId } from '../../lib/utils';
+import { MOODS } from '../timer/BreakOverlay';
 
 const ROW_H_DESKTOP = 9;
 const ROW_H_MOBILE = 14;
@@ -194,7 +195,11 @@ export default function CalendarView({
                                 {s.status === 'active' && countdown && (
                                   <div className="session-countdown">{countdown}</div>
                                 )}
-                                {s.status === 'completed' && <div style={{ fontSize: 8, color: 'var(--text-secondary)' }}>✓ Done</div>}
+                                {s.status === 'completed' && (
+                                <div style={{ fontSize: 8, color: 'var(--text-secondary)' }}>
+                                  {s.mood ? MOODS.find(m => m.id === s.mood)?.emoji : '✓'}
+                                </div>
+                              )}
                                 {s.notes && <div style={{ fontSize: 7, color: 'var(--accent)', opacity: 0.7 }}>✎ notes</div>}
                               </div>
                             </div>

@@ -42,6 +42,7 @@ export default function App() {
   const [modalSessionId, setModalSessionId] = useState(null);
   const [notif, setNotif] = useState({ visible: false, title: '', body: '' });
   const [breakVisible, setBreakVisible] = useState(false);
+  const lastCompletedIdRef = useRef(null); // track which session just completed for mood saving
 
   // Timer refs
   const sessionTimersRef = useRef({});
@@ -143,6 +144,7 @@ export default function App() {
 
     // Show break overlay unless this is a split session continuing into the next part
     if (!linkedPartner) {
+      lastCompletedIdRef.current = id;
       setTimeout(() => setBreakVisible(true), 500);
     }
 
@@ -498,7 +500,20 @@ export default function App() {
 
       <BreakOverlay
         visible={breakVisible}
-        onDismiss={() => setBreakVisible(false)}
+        onDismiss={(auto, mood) => {
+          setBreakVisible(false);
+          if (mood && lastCompletedIdRef.current) {
+            setSessions(prev => {
+              const idx = prev.findIndex(x => x.id === lastCompletedIdRef.current);
+              if (idx === -1) return prev;
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], mood };
+              saveSession(updated[idx]);
+              return updated;
+            });
+          }
+          lastCompletedIdRef.current = null;
+        }}
         autostartBreaks={focusSettings.autostartBreaks}
         breakDuration={focusSettings.breakDuration}
       />

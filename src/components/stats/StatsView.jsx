@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getDateKey } from '../../lib/utils';
+import { MOODS } from '../timer/BreakOverlay';
 
 const PERIODS = [
   ['daily', 'Daily'],
@@ -260,6 +261,40 @@ export default function StatsView({ sessions, tags }) {
           </div>
         </div>
       )}
+
+      {(() => {
+        const moodSessions = completed.filter(s => s.mood);
+        if (moodSessions.length === 0) return null;
+        const moodCounts = {};
+        moodSessions.forEach(s => { moodCounts[s.mood] = (moodCounts[s.mood] || 0) + 1; });
+        const maxCount = Math.max(...Object.values(moodCounts), 1);
+        return (
+          <div className="stat-card wide">
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10 }}>Mood Breakdown</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {MOODS.map(m => {
+                const count = moodCounts[m.id] || 0;
+                if (count === 0) return null;
+                const barW = Math.max(4, Math.round((count / maxCount) * 100));
+                return (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{m.emoji}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>{m.label}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{count} session{count !== 1 ? 's' : ''}</div>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 2, background: 'var(--bg-surface)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: barW + '%', borderRadius: 2, background: 'var(--accent)', transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="stat-card wide">
         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Last 7 Days</div>
