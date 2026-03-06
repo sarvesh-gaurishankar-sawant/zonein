@@ -646,20 +646,18 @@
 
 /* ===== CUSTOM DURATION INPUT (BottomBar) ===== */
 .dur-custom-input {
-  width: 44px; height: 34px;
+  flex: 1; padding: 6px 0;
   text-align: center;
-  font-size: 12px; font-weight: 800; font-family: inherit;
+  font-size: 11px; font-weight: 800; font-family: inherit;
   background: var(--bg-surface); color: var(--text-secondary);
   border: 1px solid var(--border);
   border-radius: 999px;
   outline: none; transition: all 0.1s;
-  -moz-appearance: textfield;
+  -moz-appearance: textfield; min-width: 0;
 }
-.dur-custom-input::-webkit-outer-spin-button,
-.dur-custom-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .dur-custom-input:focus { border-color: var(--accent); color: var(--text-primary); }
 .dur-custom-input.active { background: var(--accent); border-color: var(--accent); color: #000; box-shadow: 3px 3px 0 #000; }
-.dur-custom-input::placeholder { color: var(--text-muted); font-weight: 700; }
+.dur-custom-input::placeholder { color: var(--text-muted); font-weight: 700; font-size: 9px; letter-spacing: 0.3px; }
 
 /* ===== CUSTOM BREAK INPUT (BreakOverlay) ===== */
 .break-custom-wrap {

@@ -136,14 +136,14 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
               </button>
             ))}
             <input
-              type="number"
-              min={1}
-              max={120}
-              placeholder={isCustomBreak ? String(s.breakDuration) : '?'}
+              type="text"
+              inputMode="numeric"
+              placeholder={isCustomBreak ? String(s.breakDuration) : 'custom'}
               value={customBreak}
               onChange={e => {
-                setCustomBreak(e.target.value);
-                const val = parseInt(e.target.value, 10);
+                const raw = e.target.value.replace(/[^0-9]/g, '');
+                setCustomBreak(raw);
+                const val = parseInt(raw, 10);
                 if (val && val >= 1 && val <= 120) setBreakDuration(val);
               }}
               onBlur={() => {
@@ -157,12 +157,9 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
                 }
               }}
               style={{
-                width: 44, height: 30, textAlign: 'center',
-                fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
-                background: isCustomBreak && !customBreak ? 'var(--accent)' : 'var(--bg-surface)',
-                color: isCustomBreak && !customBreak ? '#000' : 'var(--text-primary)',
-                border: `1px solid ${isCustomBreak && !customBreak ? 'var(--accent)' : 'var(--border)'}`,
-                outline: 'none', borderRadius: 999,
+                ...pillBtnStyle(isCustomBreak),
+                width: 60, textAlign: 'center',
+                outline: 'none', cursor: 'text',
               }}
             />
           </div>
@@ -180,14 +177,14 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
               </button>
             ))}
             <input
-              type="number"
-              min={1}
-              max={480}
-              placeholder={isCustomDuration ? String(s.duration) : '?'}
+              type="text"
+              inputMode="numeric"
+              placeholder={isCustomDuration ? String(s.duration) : 'custom'}
               value={customDur}
               onChange={e => {
-                setCustomDur(e.target.value);
-                const val = parseInt(e.target.value, 10);
+                const raw = e.target.value.replace(/[^0-9]/g, '');
+                setCustomDur(raw);
+                const val = parseInt(raw, 10);
                 if (val && val >= 1 && val <= 480) setDuration(val);
               }}
               onBlur={() => {
@@ -201,12 +198,9 @@ export default function SettingsView({ focusSettings, setFocusSettings, saveSett
                 }
               }}
               style={{
-                width: 44, height: 30, textAlign: 'center',
-                fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
-                background: isCustomDuration && !customDur ? 'var(--accent)' : 'var(--bg-surface)',
-                color: isCustomDuration && !customDur ? '#000' : 'var(--text-primary)',
-                border: `1px solid ${isCustomDuration && !customDur ? 'var(--accent)' : 'var(--border)'}`,
-                outline: 'none', borderRadius: 999,
+                ...pillBtnStyle(isCustomDuration),
+                width: 60, textAlign: 'center',
+                outline: 'none', cursor: 'text',
               }}
             />
           </div>

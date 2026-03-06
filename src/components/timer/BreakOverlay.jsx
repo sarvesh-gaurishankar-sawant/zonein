@@ -123,14 +123,14 @@ export default function BreakOverlay({ visible, onDismiss, autostartBreaks, brea
             >
               <input
                 className="break-custom-input"
-                type="number"
-                min={1}
-                max={120}
+                type="text"
+                inputMode="numeric"
                 placeholder="?"
                 value={customBreak}
                 onChange={e => {
-                  setCustomBreak(e.target.value);
-                  const val = parseInt(e.target.value, 10);
+                  const raw = e.target.value.replace(/[^0-9]/g, '');
+                  setCustomBreak(raw);
+                  const val = parseInt(raw, 10);
                   if (val && val >= 1 && val <= 120) startBreak(val);
                 }}
                 onKeyDown={e => {
